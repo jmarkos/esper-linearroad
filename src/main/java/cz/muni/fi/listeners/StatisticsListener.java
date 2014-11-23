@@ -5,7 +5,7 @@ import java.util.Collections;
 
 import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.UpdateListener;
-import cz.muni.fi.eventtypes.AverageSpeedStats;
+import cz.muni.fi.eventtypes.InitialAverageSpeedEvent;
 
 public class StatisticsListener implements UpdateListener {
 
@@ -17,9 +17,9 @@ public class StatisticsListener implements UpdateListener {
 
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
-        ArrayList<AverageSpeedStats> s = new ArrayList<>(100);
+        ArrayList<InitialAverageSpeedEvent> s = new ArrayList<>(100);
         for (EventBean newEvent : newEvents) {
-            s.add(new AverageSpeedStats(newEvent));
+            s.add(new InitialAverageSpeedEvent(newEvent));
         }
         Collections.sort(s);
         System.out.println("Statistics listener " + name + ": " + newEvents.length + " here BE collection: " + s);

@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 
+import javax.swing.text.Position;
+
 import cz.muni.fi.eventtypes.*;
 
 public class DataDriver {
@@ -119,7 +121,7 @@ public class DataDriver {
 
     public static void simpleIterate() throws InterruptedException {
 //        Path path = Paths.get("esper-lrb/data/datafile20seconds.dat");
-        Path path = Paths.get("esper-lrb/data/datafile3hours.dat"); // 12mil lines
+        Path path = Paths.get("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat"); // 12mil lines
         long start = System.currentTimeMillis();
         ArrayDeque<Event> allevents = new ArrayDeque<Event>();
         try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.US_ASCII)){
@@ -128,11 +130,19 @@ public class DataDriver {
             while ((line = reader.readLine()) != null) {
                 //process each line in some way
                 Event e = parseLineToEvent(line);
-                allevents.add(e);
-                if (e.getTime() > max) {
-                    max = e.getTime();
-                    if (max % 100 == 0 && max != 0)
-                        System.out.println(max);
+                if (e != null) {
+                    allevents.add(e);
+                    if (e.getTime() > max) {
+                        max = e.getTime();
+                        if (max % 100 == 0 && max != 0)
+                            System.out.println(max);
+                    }
+                    if (e instanceof PositionReportEvent) {
+                        PositionReportEvent rpe = (PositionReportEvent) e;
+                        if (rpe.speed == 0) {
+                            System.out.println(rpe);
+                        }
+                    }
                 }
 //                int i = Integer.valueOf(line.split(",")[1]);
 //                if (i > max) {

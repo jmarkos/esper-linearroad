@@ -2,21 +2,24 @@ package cz.muni.fi.eventtypes;
 
 import com.espertech.esper.client.EventBean;
 
-public class AverageSpeedStats implements Comparable {
+public class InitialAverageSpeedEvent implements Comparable {
 
+    public int min; // minute for which the stats were computed, max 180
     public byte xway; // 0..L-1
     public byte direction; // 0 = East, 1 = West
     public byte segment; // 0..99, 1 mile long
     public double averageSpeed;
 
-    public AverageSpeedStats(int xway, int direction, int segment, double averageSpeed) {
+    public InitialAverageSpeedEvent(int min, int xway, int direction, int segment, double averageSpeed) {
+        this.min = min;
         this.xway = (byte) xway;
         this.direction = (byte) direction;
         this.segment = (byte) segment;
         this.averageSpeed = averageSpeed;
     }
 
-    public AverageSpeedStats(EventBean e) {
+    public InitialAverageSpeedEvent(EventBean e) {
+        this.min = ((Double)e.get("min")).intValue();
         this.xway = (byte)e.get("xway");
         this.direction = (byte)e.get("direction");
         this.segment = (byte)e.get("segment");
@@ -29,9 +32,10 @@ public class AverageSpeedStats implements Comparable {
         }
     }
 
+    // TODO add min
     @Override
     public int compareTo(Object o) {
-        AverageSpeedStats m = (AverageSpeedStats) o;
+        InitialAverageSpeedEvent m = (InitialAverageSpeedEvent) o;
         if (this.xway != m.xway)
             return this.xway - m.xway;
         if (this.direction != m.direction)
@@ -41,12 +45,21 @@ public class AverageSpeedStats implements Comparable {
 
     @Override
     public String toString() {
-        return "eventtypes.SegStat{" +
-                "xway=" + xway +
+        return "eventtypes.InitialAverageSpeedEvent{" +
+                "min=" + min +
+                ", xway=" + xway +
                 ", direction=" + direction +
                 ", segment=" + segment +
                 ", averageSpeed=" + averageSpeed +
                 '}';
+    }
+
+    public int getMin() {
+        return min;
+    }
+
+    public void setMin(int min) {
+        this.min = min;
     }
 
     public byte getXway() {

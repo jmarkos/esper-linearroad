@@ -2,21 +2,24 @@ package cz.muni.fi.eventtypes;
 
 import com.espertech.esper.client.EventBean;
 
-public class CountStats implements Comparable {
+public class CountEvent implements Comparable {
 
+    public int min; // minute for which the stats were computed, max 180
     public byte xway; // 0..L-1
     public byte direction; // 0 = East, 1 = West
     public byte segment; // 0..99, 1 mile long
     public long count;
 
-    public CountStats(int xway, int direction, int segment, long count) {
+    public CountEvent(int min, int xway, int direction, int segment, long count) {
+        this.min = min;
         this.xway = (byte) xway;
         this.direction = (byte) direction;
         this.segment = (byte) segment;
         this.count = count;
     }
 
-    public CountStats(EventBean e) {
+    public CountEvent(EventBean e) {
+        this.min = ((Double)e.get("min")).intValue();
         this.xway = (byte)e.get("xway");
         this.direction = (byte)e.get("direction");
         this.segment = (byte)e.get("segment");
@@ -25,7 +28,7 @@ public class CountStats implements Comparable {
 
     @Override
     public int compareTo(Object o) {
-        CountStats m = (CountStats) o;
+        CountEvent m = (CountEvent) o;
         if (this.xway != m.xway)
             return this.xway - m.xway;
         if (this.direction != m.direction)
@@ -35,12 +38,21 @@ public class CountStats implements Comparable {
 
     @Override
     public String toString() {
-        return "eventtypes.SegStat{" +
-                "xway=" + xway +
+        return "eventtypes.CountEvent{" +
+                "min=" + min +
+                ", xway=" + xway +
                 ", direction=" + direction +
                 ", segment=" + segment +
                 ", count=" + count +
                 '}';
+    }
+
+    public int getMin() {
+        return min;
+    }
+
+    public void setMin(int min) {
+        this.min = min;
     }
 
     public byte getXway() {

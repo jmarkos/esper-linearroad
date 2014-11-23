@@ -18,7 +18,7 @@ public class ChangedSegmentListener implements UpdateListener {
         if (newEvents.length > 1) {
             System.out.println("Something is wrong?");
         }
-        cepRT.sendEvent(new ChangedSegmentEvent(
+        System.out.println(new ChangedSegmentEvent(
                 (short)newEvents[0].get("time"),
                 (int)newEvents[0].get("vid"),
                 (byte)newEvents[0].get("xway"),
@@ -26,6 +26,14 @@ public class ChangedSegmentListener implements UpdateListener {
                 (byte)newEvents[0].get("direction"),
                 (byte)newEvents[0].get("oldSegment"),
                 (byte)newEvents[0].get("newSegment")));
+        cepRT.sendEvent(new ChangedSegmentEvent(
+                (short) newEvents[0].get("time"),
+                (int) newEvents[0].get("vid"),
+                (byte) newEvents[0].get("xway"),
+                (byte) newEvents[0].get("lane"),
+                (byte) newEvents[0].get("direction"),
+                (byte) newEvents[0].get("oldSegment"),
+                (byte) newEvents[0].get("newSegment")));
     }
 
 }
