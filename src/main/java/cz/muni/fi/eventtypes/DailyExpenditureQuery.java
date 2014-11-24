@@ -2,7 +2,7 @@ package cz.muni.fi.eventtypes;
 
 public class DailyExpenditureQuery implements Event {
 
-    // file vid, day, xway, tolls
+    // file historicalTolls has structure: vid, day, xway, tolls
 
     public byte type;
     public short time; // 0..10799 seconds

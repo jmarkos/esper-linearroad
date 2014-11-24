@@ -1,5 +1,6 @@
 package cz.muni.fi.eventtypes;
-// simple marker interface for all possible input event types
+
+// implemented by all initial events created by DataDriver
 public interface Event {
 
     public byte getType();

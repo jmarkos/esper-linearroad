@@ -15,29 +15,6 @@ import cz.muni.fi.eventtypes.*;
 
 public class DataDriver {
 
-    public static void main(String[] args) throws InterruptedException, IOException {
-
-
-//        DataDriver dd = new DataDriver("esper-lrb/data/datafile20seconds.dat");
-        DataDriver dd = new DataDriver("esper-lrb/data/datafile3hours.dat");
-        dd.start();
-        Thread.sleep(1900);
-
-        int sum = 0;
-        while (dd.simulationEnded == false) {
-            ArrayDeque<Event> newEvents = dd.getNewEvents();
-            if (newEvents != null) {
-                sum += newEvents.size();
-                System.out.println("sum = " + sum);
-//                for (LRBEvent lrbEvent : newEvents) {
-//                    System.out.println("lrbEvent = " + lrbEvent);
-//                }
-            }
-            Thread.sleep(100);
-        }
-        System.out.println("sum = " + sum);
-    }
-
     public DataDriver(String fileLocation) throws IOException {
         Path path = Paths.get(fileLocation);
         inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
@@ -159,6 +136,27 @@ public class DataDriver {
         // 1.3GB
         System.out.println("allevents.size() = " + allevents.size());
         Thread.sleep(10000);
+    }
+
+    public static void main(String[] args) throws InterruptedException, IOException {
+//        DataDriver dd = new DataDriver("esper-lrb/data/datafile20seconds.dat");
+        DataDriver dd = new DataDriver("esper-lrb/data/datafile3hours.dat");
+        dd.start();
+        Thread.sleep(1900);
+
+        int sum = 0;
+        while (dd.simulationEnded == false) {
+            ArrayDeque<Event> newEvents = dd.getNewEvents();
+            if (newEvents != null) {
+                sum += newEvents.size();
+                System.out.println("sum = " + sum);
+//                for (LRBEvent lrbEvent : newEvents) {
+//                    System.out.println("lrbEvent = " + lrbEvent);
+//                }
+            }
+            Thread.sleep(100);
+        }
+        System.out.println("sum = " + sum);
     }
 
 }

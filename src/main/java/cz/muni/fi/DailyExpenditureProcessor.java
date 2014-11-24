@@ -67,16 +67,15 @@ public class DailyExpenditureProcessor {
 //        preloadData();
     }
 
+    // little benchmark
     public static void main(String[] args) throws InterruptedException {
         DailyExpenditureProcessor dep = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt");
         long start = System.currentTimeMillis();
         for (int i = 0; i < 100000; i++) {
             dep.handleQuery(new DailyExpenditureQuery((byte) 0, (short) 10, (i % 50) + 1, (byte) 0, 999, (byte) ((i % 67) + 1)));
         }
-        System.out.println("Sleeping " + 5000 + " milliseconds");
-//        Thread.sleep(5000);
         dep.executor.shutdown();
-        dep.executor.awaitTermination(100, TimeUnit.SECONDS);
+        dep.executor.awaitTermination(200, TimeUnit.SECONDS);
         long duration = System.currentTimeMillis() - start;
         System.out.println("duration = " + duration);
     }

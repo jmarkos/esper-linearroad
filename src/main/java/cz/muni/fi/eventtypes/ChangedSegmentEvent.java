@@ -1,5 +1,7 @@
 package cz.muni.fi.eventtypes;
 
+import com.espertech.esper.client.EventBean;
+
 public class ChangedSegmentEvent {
 
     public short time; // 0..10799 seconds
@@ -32,6 +34,17 @@ public class ChangedSegmentEvent {
         this.newSegment = pre.segment;
         this.oldSegment = -1;
     }
+    
+    public ChangedSegmentEvent(EventBean e) {
+        this.time = (short) e.get("time");
+        this.min = computeMinute(this.time) - 1;
+        this.vid = (int) e.get("vid");
+        this.xway = (byte) e.get("xway");
+        this.lane = (byte) e.get("lane");
+        this.direction = (byte) e.get("direction");
+        this.oldSegment = (byte) e.get("oldSegment");
+        this.newSegment = (byte) e.get("newSegment");
+    }
 
     public int computeMinute(int seconds) {
         return (int) Math.floor(seconds / 60) + 1;
@@ -41,6 +54,7 @@ public class ChangedSegmentEvent {
     public String toString() {
         return "ChangedSegmentEvent{" +
                 "time=" + time +
+                ", min=" + min +
                 ", vid=" + vid +
                 ", xway=" + xway +
                 ", lane=" + lane +

@@ -1,6 +1,5 @@
 package cz.muni.fi.eventtypes;
 
-
 // The same as PositionReport, but speed is always 0
 public class StoppedCarEvent implements Event {
 

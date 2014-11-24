@@ -10,7 +10,7 @@ public class TollEvent {
     public byte segment; // 0..99, 1 mile long
     public double averageSpeed;
     public long count;
-    public boolean accident = false; // anything other than null means there was an accident
+    public boolean accident = false;
     public long toll;
 
     public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, boolean accident, long toll) {
@@ -25,12 +25,13 @@ public class TollEvent {
     }
 
     public TollEvent(EventBean e) {
-        this.min = ((Double)e.get("min")).intValue();
+        this.min = (int)e.get("min");
         this.xway = (byte)e.get("xway");
         this.direction = (byte)e.get("direction");
         this.segment = (byte)e.get("segment");
         this.averageSpeed = (double)e.get("averageSpeed");
         this.count = (long)e.get("count");
+        // anything other than null means there was an accident
         if (e.get("accident") != null) {
             this.accident = true;
         }

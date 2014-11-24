@@ -20,22 +20,24 @@ public class CountListener implements UpdateListener {
 
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
-        System.out.println("count listener! " + newEvents.length);
+        log.info("Number of active segments: " + newEvents.length);
         // we need to list through and find all missing segments (segments which didn't have any action), and produce
         // an 'empty' statistic event for them, so that we can later do an inner join
+
+        // east=0, west=1, first 100 is east, 100-200 is west
         boolean[][] existingStats = new boolean[Benchmark.NUM_XWAYS][200];
         int min = 0;
-        // east=0, west=1, first 100 is east, 100-200 is west
         for (EventBean newEvent : newEvents) {
             if (((Double)newEvent.get("min")).intValue() == -1) {
                 continue;
                 // sometimes esper generates "empty" events, i.e. with min=null, count=0 but with actual xway,seg,dir set,
                 // so we just skip those and create them properly afterwards (with min != null)
+                // TODO find out the real cause / report a bug
             }
             CountEvent countEvent = new CountEvent(newEvent);
             min = countEvent.min;
             existingStats[countEvent.xway][countEvent.segment + countEvent.direction*100] = true;
-            log.debug("Sending " + countEvent);
+            log.debug("Sending count " + countEvent);
             cepRT.sendEvent(countEvent);
         }
         for (int i = 0; i < Benchmark.NUM_XWAYS; i++) {
@@ -52,7 +54,6 @@ public class CountListener implements UpdateListener {
                 }
             }
         }
-
     }
 
 }

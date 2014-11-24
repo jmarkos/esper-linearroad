@@ -4,8 +4,11 @@ import com.espertech.esper.client.EPRuntime;
 import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.UpdateListener;
 import cz.muni.fi.eventtypes.ChangedSegmentEvent;
+import org.apache.log4j.Logger;
 
 public class ChangedSegmentListener implements UpdateListener {
+
+    private static org.apache.log4j.Logger log = Logger.getLogger(ChangedSegmentListener.class);
 
     private EPRuntime cepRT;
 
@@ -16,24 +19,13 @@ public class ChangedSegmentListener implements UpdateListener {
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
         if (newEvents.length > 1) {
-            System.out.println("Something is wrong?");
+            log.warn("Changed segment listener received more than 1 new events.");
         }
-        System.out.println(new ChangedSegmentEvent(
-                (short)newEvents[0].get("time"),
-                (int)newEvents[0].get("vid"),
-                (byte)newEvents[0].get("xway"),
-                (byte)newEvents[0].get("lane"),
-                (byte)newEvents[0].get("direction"),
-                (byte)newEvents[0].get("oldSegment"),
-                (byte)newEvents[0].get("newSegment")));
-        cepRT.sendEvent(new ChangedSegmentEvent(
-                (short) newEvents[0].get("time"),
-                (int) newEvents[0].get("vid"),
-                (byte) newEvents[0].get("xway"),
-                (byte) newEvents[0].get("lane"),
-                (byte) newEvents[0].get("direction"),
-                (byte) newEvents[0].get("oldSegment"),
-                (byte) newEvents[0].get("newSegment")));
+        for (EventBean newEvent : newEvents) {
+            ChangedSegmentEvent changedSegmentEvent = new ChangedSegmentEvent(newEvent);
+            log.debug("Sending changed segment " + changedSegmentEvent);
+            cepRT.sendEvent(changedSegmentEvent);
+        }
     }
 
 }

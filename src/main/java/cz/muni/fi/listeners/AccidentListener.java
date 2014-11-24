@@ -4,8 +4,11 @@ import com.espertech.esper.client.EPRuntime;
 import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.UpdateListener;
 import cz.muni.fi.eventtypes.AccidentEvent;
+import org.apache.log4j.Logger;
 
 public class AccidentListener implements UpdateListener {
+
+    private static org.apache.log4j.Logger log = Logger.getLogger(AccidentListener.class);
 
     private EPRuntime cepRT;
 
@@ -18,7 +21,6 @@ public class AccidentListener implements UpdateListener {
         if (newEvents == null) {
             return;
         }
-        System.out.println("Accidents in the minute: " + newEvents.length);
         for (EventBean accident : newEvents) {
             int min = ((Double)newEvents[0].get("min")).intValue();
             byte xway = (byte)accident.get("xway");
@@ -32,8 +34,8 @@ public class AccidentListener implements UpdateListener {
                         break;
                     }
                     AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment - i), position);
+                    log.debug("Sending accident: " + accidentEvent);
                     cepRT.sendEvent(accidentEvent);
-                    System.out.println("Sending accident: " + accidentEvent);
                 }
             }
 
@@ -44,6 +46,7 @@ public class AccidentListener implements UpdateListener {
                         break;
                     }
                     AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment + i), position);
+                    log.debug("Sending accident: " + accidentEvent);
                     cepRT.sendEvent(accidentEvent);
                 }
             }

@@ -2,7 +2,7 @@ package cz.muni.fi.eventtypes;
 
 import com.espertech.esper.client.EventBean;
 
-public class CountEvent implements Comparable {
+public class CountEvent {
 
     public int min; // minute for which the stats were computed, max 180
     public byte xway; // 0..L-1
@@ -24,16 +24,6 @@ public class CountEvent implements Comparable {
         this.direction = (byte)e.get("direction");
         this.segment = (byte)e.get("segment");
         this.count = (long)e.get("count");
-    }
-
-    @Override
-    public int compareTo(Object o) {
-        CountEvent m = (CountEvent) o;
-        if (this.xway != m.xway)
-            return this.xway - m.xway;
-        if (this.direction != m.direction)
-            return this.direction - m.direction;
-        return this.segment - m.segment;
     }
 
     @Override

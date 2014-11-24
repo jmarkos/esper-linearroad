@@ -1,8 +1,11 @@
 package cz.muni.fi.eventtypes;
 
 import com.espertech.esper.client.EventBean;
+import org.apache.log4j.Logger;
 
-public class AverageSpeedEvent implements Comparable {
+public class AverageSpeedEvent {
+
+    private static org.apache.log4j.Logger log = Logger.getLogger(AverageSpeedEvent.class);
 
     public int min; // minute for which the stats were computed, max 180
     public byte xway; // 0..L-1
@@ -27,20 +30,8 @@ public class AverageSpeedEvent implements Comparable {
         if (e.get("averageSpeed") != null) {
             this.averageSpeed = (double)e.get("averageSpeed");
         } else {
-            this.averageSpeed = 0; // doesn't matter what we set, if count is <40 there is no toll anyway
-            System.out.println("Average speed was null! " + this.toString());
+            log.error("Average speed was null! " + this);
         }
-    }
-
-    // TODO add min
-    @Override
-    public int compareTo(Object o) {
-        AverageSpeedEvent m = (AverageSpeedEvent) o;
-        if (this.xway != m.xway)
-            return this.xway - m.xway;
-        if (this.direction != m.direction)
-            return this.direction - m.direction;
-        return this.segment - m.segment;
     }
 
     @Override

@@ -6,8 +6,11 @@ import com.espertech.esper.client.UpdateListener;
 import cz.muni.fi.eventtypes.LRBEvent;
 import cz.muni.fi.eventtypes.StoppedCarEvent;
 import cz.muni.fi.eventtypes.TrashedCarEvent;
+import org.apache.log4j.Logger;
 
 public class TrashedCarListener implements UpdateListener {
+
+    private static org.apache.log4j.Logger log = Logger.getLogger(TrashedCarListener.class);
 
     private EPRuntime cepRT;
 
@@ -24,8 +27,8 @@ public class TrashedCarListener implements UpdateListener {
         tce.segment = ((StoppedCarEvent) newEvents[0].get("pr3")).segment;
         tce.direction = ((StoppedCarEvent) newEvents[0].get("pr3")).direction;
         tce.position = ((StoppedCarEvent) newEvents[0].get("pr3")).position;
+        log.debug("Sending trashed car " + tce);
         cepRT.sendEvent(tce);
-        System.out.println("tce = " + tce);
     }
 
 }

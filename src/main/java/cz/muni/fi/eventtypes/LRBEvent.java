@@ -1,10 +1,6 @@
 package cz.muni.fi.eventtypes;
 
-import static java.lang.String.format;
-
-/**
- * LRB event/tuple type
- */
+// TODO delete at some point
 public class LRBEvent {
 
     public byte type;
@@ -23,8 +19,6 @@ public class LRBEvent {
     public short tod; // 0..1440, time of day
     // intentionally not called 'day', it's a reserved keyword in esper
     public byte dayy; // 1..69, 1 = yesterday, 69 = 10 weeks ago
-
-    // TODO outputTime ?
 
     @Override
     public String toString() {
@@ -46,13 +40,6 @@ public class LRBEvent {
                 ", dayy=" + dayy +
                 '}';
     }
-
-    // faster?
-//    @Override
-//    public String toString() {
-//        return String.format("type: %d, time: %d, vid: %d, speed: %d, xway: %d, lane: %d, direction: %d, segment: %d, position: %d, qid: %d, sinit: %d, send: %d, dow: %d, tod: %d, dayy: %d",
-//                type, time, vid, speed, xway, lane, direction, segment, position, qid, sinit, send, dow, tod, dayy);
-//    }
 
     // setters and getters are needed by Esper
 

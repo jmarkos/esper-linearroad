@@ -19,12 +19,13 @@ public class InitialAverageSpeedListener implements UpdateListener {
 
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
-        System.out.println("speed listener! " + newEvents.length);
+        log.info("Number of active segments: " + newEvents.length);
         // we need to list through and find all missing segments (segments which didn't have any action), and produce
         // an 'empty' statistic event for them, so that the downstream query can use length(5)
+
+        // east=0, west=1, first 100 is east, 100-200 is west
         boolean[][] existingStats = new boolean[Benchmark.NUM_XWAYS][200];
         int min = 0;
-        // east=0, west=1, first 100 is east, 100-200 is west
         for (EventBean newEvent : newEvents) {
             if (((Double)newEvent.get("min")).intValue() == -1) {
                 continue;
@@ -34,7 +35,7 @@ public class InitialAverageSpeedListener implements UpdateListener {
             InitialAverageSpeedEvent averageSpeedEvent = new InitialAverageSpeedEvent(newEvent);
             min = averageSpeedEvent.min;
             existingStats[averageSpeedEvent.xway][averageSpeedEvent.segment + averageSpeedEvent.direction*100] = true;
-            log.debug("Sending " + averageSpeedEvent);
+            log.debug("Sending initial average speed " + averageSpeedEvent);
             cepRT.sendEvent(averageSpeedEvent);
         }
         for (int i = 0; i < Benchmark.NUM_XWAYS; i++) {
