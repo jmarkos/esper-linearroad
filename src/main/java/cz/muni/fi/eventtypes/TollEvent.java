@@ -10,17 +10,17 @@ public class TollEvent {
     public byte segment; // 0..99, 1 mile long
     public double averageSpeed;
     public long count;
-    public boolean accident = false;
+    public int accSegment = -1; // segment of the accident
     public long toll;
 
-    public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, boolean accident, long toll) {
+    public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, long toll) {
         this.min = min;
         this.xway = xway;
         this.direction = direction;
         this.segment = segment;
         this.averageSpeed = averageSpeed;
         this.count = count;
-        this.accident = accident;
+        this.accSegment = accSegment;
         this.toll = toll;
     }
 
@@ -32,14 +32,14 @@ public class TollEvent {
         this.averageSpeed = (double)e.get("averageSpeed");
         this.count = (long)e.get("count");
         // anything other than null means there was an accident
-        if (e.get("accident") != null) {
-            this.accident = true;
+        if (e.get("accSegment") != null) {
+            this.accSegment = (int)e.get("accSegment");
         }
         this.toll = computeToll();
     }
 
     public long computeToll() {
-        if (accident || count <= 50 || averageSpeed >= 40) {
+        if (accSegment != -1 || count <= 50 || averageSpeed >= 40) {
             return 0;
         }
         return (long) (2 * Math.pow((count - 50), 2));
@@ -54,7 +54,7 @@ public class TollEvent {
                 ", segment=" + segment +
                 ", averageSpeed=" + averageSpeed +
                 ", count=" + count +
-                ", accident=" + accident +
+                ", accSegment=" + accSegment +
                 ", toll=" + toll +
                 '}';
     }
@@ -107,12 +107,12 @@ public class TollEvent {
         this.averageSpeed = averageSpeed;
     }
 
-    public boolean isAccident() {
-        return accident;
+    public int getAccSegment() {
+        return accSegment;
     }
 
-    public void setAccident(boolean accident) {
-        this.accident = accident;
+    public void setAccSegment(int accSegment) {
+        this.accSegment = accSegment;
     }
 
     public long getToll() {

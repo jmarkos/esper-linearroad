@@ -82,7 +82,7 @@ public class Benchmark {
         speedStats.addListener(new AverageSpeedListener(cepRT));
 
         EPStatement tolls = cepAdm.createEPL(
-                "select S.min as min, S.xway as xway, S.segment as segment, S.direction as direction, S.averageSpeed as averageSpeed, C.count as count, A.segment as accident " +
+                "select S.min as min, S.xway as xway, S.segment as segment, S.direction as direction, S.averageSpeed as averageSpeed, C.count as count, A.segment as accSegment " +
                         "from Speed.win:time(90 sec) as S " +
                         "inner join CountStats.win:time(90 sec) as C on S.min=C.min and S.xway=C.xway and S.direction=C.direction and S.segment=C.segment " +
                         "left outer join Accident.win:time(90 sec).std:unique(min, xway, segment, direction) as A on A.min=S.min and A.xway=S.xway and A.direction=S.direction and A.segment=S.segment ");
@@ -96,6 +96,7 @@ public class Benchmark {
         // TODO listener, assessment table/hashmap/?
 
         // even if a car sends 4 reports with speed 0, it's position may change => not an accident
+        // TODO need to join on x,s,d, too, because a car can travel on multiple xways at the same time
         EPStatement trashedCars = cepAdm.createPattern(
                   " (every pr0=StoppedCar) " +
                           "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
@@ -117,6 +118,7 @@ public class Benchmark {
         // stream of 'new' cars - position reports which changed the segment of a car
         // this works like this: the 35s window has 2 consecutive reports for each car, the current one (=latest one) and the previous
         // the 2nd window keeps just the latest one and compares it only with the previous (the where condition fails when compared with itself) TODO make this more clear
+        // TODO we need to join on x,s,d also, because the car can travel on multiple xways simultaneously...
         EPStatement changedSegment = cepAdm.createEPL(
                 "select pr2.time as time, pr2.vid as vid, pr1.segment as oldSegment, pr2.segment as newSegment, pr2.xway as xway, pr2.direction as direction, pr2.lane as lane " +
                 "from PositionReport.win:time(35 sec) as pr1 " +

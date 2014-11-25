@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import cz.muni.fi.eventtypes.DailyExpenditureQuery;
+import org.apache.log4j.Logger;
 
 /**
  * Connect to postgres:
@@ -31,6 +32,8 @@ import cz.muni.fi.eventtypes.DailyExpenditureQuery;
  * Other possible approaches - keeping the data only in memory, using espers tables (new in esper 5.1.0)
  */
 public class DailyExpenditureProcessor {
+
+    private static org.apache.log4j.Logger log = Logger.getLogger(DailyExpenditureProcessor.class);
 
     String url = "jdbc:postgresql://localhost/lrb";
     String user = "lrb";
@@ -92,9 +95,9 @@ public class DailyExpenditureProcessor {
                                                                                         " and day=" + deq.getDayy() +
                                                                                         " and xway=" + deq.getXway());
                     rs.next();
-//                    System.out.println(deq + " had tolls: " + rs.getInt("tolls"));
+                    log.debug(deq + " had tolls: " + rs.getInt("tolls"));
                 } catch (SQLException e) {
-                    System.out.println("Query " + deq + " failed with: " + e);
+                    log.error("Query " + deq + " failed with: " + e);
                 } finally {
                     if (conn != null) {
                         try {
