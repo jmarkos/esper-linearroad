@@ -20,6 +20,28 @@ public class LRBEvent {
     // intentionally not called 'day', it's a reserved keyword in esper
     public byte dayy; // 1..69, 1 = yesterday, 69 = 10 weeks ago
 
+    public LRBEvent(String[] properties) {
+        this.type = Byte.valueOf(properties[0]);
+        this.time = Short.valueOf(properties[1]);
+        this.vid = Integer.valueOf(properties[2]);
+        this.speed = Byte.valueOf(properties[3]);
+        this.xway = Byte.valueOf(properties[4]);
+        this.lane = Byte.valueOf(properties[5]);
+        this.direction = Byte.valueOf(properties[6]);
+        this.segment = Byte.valueOf(properties[7]);
+        this.position = Integer.valueOf(properties[8]);
+        this.qid = Integer.valueOf(properties[9]);
+        this.sinit = Byte.valueOf(properties[10]);
+        this.send = Byte.valueOf(properties[11]);
+        this.dow = Byte.valueOf(properties[12]);
+        this.tod = Short.valueOf(properties[13]);
+        this.dayy = Byte.valueOf(properties[14]);
+    }
+
+    public LRBEvent() {
+
+    }
+
     @Override
     public String toString() {
         return "LRBEvent{" +
@@ -39,6 +61,26 @@ public class LRBEvent {
                 ", tod=" + tod +
                 ", dayy=" + dayy +
                 '}';
+    }
+
+    public String toFileString() {
+        StringBuilder result = new StringBuilder();
+        result.append(type + ",");
+        result.append(time + ",");
+        result.append(vid + ",");
+        result.append(speed + ",");
+        result.append(xway + ",");
+        result.append(lane + ",");
+        result.append(direction + ",");
+        result.append(segment + ",");
+        result.append(position + ",");
+        result.append(qid + ",");
+        result.append(sinit + ",");
+        result.append(send + ",");
+        result.append(dow + ",");
+        result.append(tod + ",");
+        result.append(dayy);
+        return result.toString();
     }
 
     // setters and getters are needed by Esper

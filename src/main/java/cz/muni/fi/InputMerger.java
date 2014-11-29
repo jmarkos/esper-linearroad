@@ -1,16 +1,22 @@
 package cz.muni.fi;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import cz.muni.fi.eventtypes.LRBEvent;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 
-// Assumes the inputDir contains files cardatapoints.out0 ... cardatapoints.outN
+/**
+ * Assumes the inputDir contains files cardatapoints.out0 ... cardatapoints.outN
+ * Creates a single output file, sorted by time, with xway correcly set
+ */
 public class InputMerger {
 
     public static String inputDir = "/home/van/dipl/lroad_data/5/";
@@ -21,6 +27,7 @@ public class InputMerger {
             inputDir = args[0];
         }
 
+        // find the files to merge
         File inputDirFile = new File(inputDir);
         FileFilter cardatapointsFilter = new WildcardFileFilter("cardatapoints.out*");
         File[] filesToMerge = inputDirFile.listFiles(cardatapointsFilter);
@@ -32,38 +39,51 @@ public class InputMerger {
             return;
         }
 
+        File outputFile = new File(inputDir + outputFileName);
+        BufferedWriter outputWriter = new BufferedWriter(new FileWriter(outputFile));
+
         BufferedReader[] readers = new BufferedReader[filesToMerge.length];
         for (int i = 0; i < filesToMerge.length; i++) {
             readers[i] = new BufferedReader(new FileReader(filesToMerge[i]));
         }
 
-        // for each second, read all the events from all the files for that second
-        // and write to the output file, changing the xways for the out1...outN files
-        ArrayList<String[]>[] secondData = new ArrayList[filesToMerge.length];
-        for (int i = 0; i < filesToMerge.length; i++) {
-            secondData[i] = new ArrayList<String[]>();
-        }
-
         String line;
+        // leftOver events are the events which were read during second i, but have time i+1
+        // when they are encountered, we stop reading further, remember them and write them during i+1 second
+        ArrayList<LRBEvent> leftOverEvents = new ArrayList<LRBEvent>(filesToMerge.length);
         for (int i = 0; i < 10800; i++) {
+            for (LRBEvent leftOverEvent : leftOverEvents) {
+                outputWriter.write(leftOverEvent.toFileString());
+                outputWriter.newLine();
+            }
+            leftOverEvents.clear();
             for (int j = 0; j < readers.length; j++) {
                 BufferedReader reader = readers[j];
                 while ((line = reader.readLine()) != null) {
                     String[] data = line.split(",");
-                    // change xway
-                    // TODO finish this
+                    LRBEvent e = new LRBEvent(data);
+                    if (e.type == 0) {
+                        e.xway = (byte) j;
+                    }
+                    if (e.time == i) {
+                        // write it to outputFile
+                        outputWriter.write(e.toFileString());
+                        outputWriter.newLine();
+                    } else { // future event, stop
+                        leftOverEvents.add(e);
+                        break;
+                    }
                 }
             }
-            // go over the secondData lists, write them to outputfile, clear them, repeat
+            if (i % 100 == 0) {
+                System.out.println("Processing second " + i);
+            }
         }
 
-        /*
-        1. zistit kolko ich je
-        2. otvorit ich vsetky
-        3. vo vsetkych okrem nulteho zamenit xway na n
-        4. for i 1..10800
-            ...
-         */
+        for (int i = 0; i < filesToMerge.length; i++) {
+            readers[i].close();
+        }
+        outputWriter.close();
     }
 
 }
