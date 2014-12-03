@@ -40,20 +40,28 @@ public class CountListener implements UpdateListener {
             log.debug("Sending count " + countEvent);
             cepRT.sendEvent(countEvent);
         }
+        int numEmpty = 0;
         for (int i = 0; i < Benchmark.NUM_XWAYS; i++) {
             // east
             for (int j = 0; j < 100; j++) {
                 if (! existingStats[i][j]) {
-                    cepRT.sendEvent(new CountEvent(min, i, 0, j, 0));
+                    CountEvent countEvent = new CountEvent(min, i, 0, j, 0);
+                    log.debug("Sending empty count " + countEvent);
+                    cepRT.sendEvent(countEvent);
+                    numEmpty++;
                 }
             }
             // west
             for (int j = 100; j < 200; j++) {
                 if (! existingStats[i][j]) {
-                    cepRT.sendEvent(new CountEvent(min, i, 1, j - 100, 0));
+                    CountEvent countEvent = new CountEvent(min, i, 1, j - 100, 0);
+                    log.debug("Sending empty count " + countEvent);
+                    cepRT.sendEvent(countEvent);
+                    numEmpty++;
                 }
             }
         }
+        log.info("Sent " + numEmpty + " empty count events.");
     }
 
 }

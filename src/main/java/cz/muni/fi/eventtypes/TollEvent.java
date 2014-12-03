@@ -11,9 +11,9 @@ public class TollEvent {
     public double averageSpeed;
     public long count;
     public int accSegment = -1; // segment of the accident
-    public long toll;
+    public int toll;
 
-    public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, long toll) {
+    public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, int toll) {
         this.min = min;
         this.xway = xway;
         this.direction = direction;
@@ -33,16 +33,16 @@ public class TollEvent {
         this.count = (long)e.get("count");
         // anything other than null means there was an accident
         if (e.get("accSegment") != null) {
-            this.accSegment = (int)e.get("accSegment");
+            this.accSegment = (byte)e.get("accSegment");
         }
         this.toll = computeToll();
     }
 
-    public long computeToll() {
+    public int computeToll() {
         if (accSegment != -1 || count <= 50 || averageSpeed >= 40) {
             return 0;
         }
-        return (long) (2 * Math.pow((count - 50), 2));
+        return (int)(2 * Math.pow((count - 50), 2));
     }
 
     @Override
@@ -115,11 +115,11 @@ public class TollEvent {
         this.accSegment = accSegment;
     }
 
-    public long getToll() {
+    public int getToll() {
         return toll;
     }
 
-    public void setToll(long toll) {
+    public void setToll(int toll) {
         this.toll = toll;
     }
 }

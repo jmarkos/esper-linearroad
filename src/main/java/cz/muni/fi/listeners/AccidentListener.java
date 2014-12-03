@@ -33,7 +33,7 @@ public class AccidentListener implements UpdateListener {
                     if (segment - i < 0) {
                         break;
                     }
-                    AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment - i), position);
+                    AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment - i), (byte) segment, position);
                     log.debug("Sending accident: " + accidentEvent);
                     cepRT.sendEvent(accidentEvent);
                 }
@@ -45,7 +45,7 @@ public class AccidentListener implements UpdateListener {
                     if (segment + i > 99) {
                         break;
                     }
-                    AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment + i), position);
+                    AccidentEvent accidentEvent = new AccidentEvent(min, xway, direction, (byte) (segment + i), (byte) segment, position);
                     log.debug("Sending accident: " + accidentEvent);
                     cepRT.sendEvent(accidentEvent);
                 }

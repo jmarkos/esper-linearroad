@@ -15,14 +15,18 @@ import cz.muni.fi.eventtypes.*;
 
 public class DataDriver {
 
-    public DataDriver(String fileLocation) throws IOException {
+    public DataDriver(String fileLocation) {
         Path path = Paths.get(fileLocation);
-        inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
+        try {
+            inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open the input file for data driver. ", e);
+        }
     }
 
     private BufferedReader inputReader;
     private long simulationStart = 0;
-    private long lastSecond = -1;
+    public long lastSecond = -1;
     private Event leftOverEvent = null;
     public boolean simulationEnded = false;
     private int speedup = 1; // to speed up the simulation (10 means 10800 / 10 = 1080 seconds)

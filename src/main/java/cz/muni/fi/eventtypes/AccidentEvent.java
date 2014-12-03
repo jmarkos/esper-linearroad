@@ -8,13 +8,15 @@ public class AccidentEvent {
     public byte xway; // 0..L-1
     public byte direction; // 0 = East, 1 = West
     public byte segment; // 0..99, 1 mile long
+    public byte originalSegment; // the segment where the accident truly occured
     public int position;
 
-    public AccidentEvent(int min, byte xway, byte direction, byte segment, int position) {
+    public AccidentEvent(int min, byte xway, byte direction, byte segment, byte originalSegment, int position) {
         this.min = min;
         this.xway = xway;
         this.direction = direction;
         this.segment = segment;
+        this.originalSegment = originalSegment;
         this.position = position;
     }
 
@@ -23,6 +25,7 @@ public class AccidentEvent {
         this.xway = (byte)e.get("xway");
         this.direction = (byte)e.get("direction");
         this.segment = (byte)e.get("segment");
+        this.originalSegment = (byte)e.get("originalSegment");
         this.position = (int)e.get("position");
     }
 
@@ -33,6 +36,7 @@ public class AccidentEvent {
                 ", xway=" + xway +
                 ", direction=" + direction +
                 ", segment=" + segment +
+                ", originalSegment=" + originalSegment +
                 ", position=" + position +
                 '}';
     }
@@ -68,6 +72,14 @@ public class AccidentEvent {
 
     public void setSegment(byte segment) {
         this.segment = segment;
+    }
+
+    public byte getOriginalSegment() {
+        return originalSegment;
+    }
+
+    public void setOriginalSegment(byte originalSegment) {
+        this.originalSegment = originalSegment;
     }
 
     public int getPosition() {

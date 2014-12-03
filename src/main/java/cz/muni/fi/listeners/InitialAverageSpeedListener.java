@@ -38,20 +38,28 @@ public class InitialAverageSpeedListener implements UpdateListener {
             log.debug("Sending initial average speed " + averageSpeedEvent);
             cepRT.sendEvent(averageSpeedEvent);
         }
+        int numEmpty = 0;
         for (int i = 0; i < Benchmark.NUM_XWAYS; i++) {
             // east
             for (int j = 0; j < 100; j++) {
                 if (! existingStats[i][j]) {
-                    cepRT.sendEvent(new InitialAverageSpeedEvent(min, i, 0, j, 0));
+                    InitialAverageSpeedEvent ias = new InitialAverageSpeedEvent(min, i, 0, j, 0);
+                    log.debug("Sending empty initial average speed " + ias);
+                    cepRT.sendEvent(ias);
+                    numEmpty++;
                 }
             }
             // west
             for (int j = 100; j < 200; j++) {
                 if (! existingStats[i][j]) {
-                    cepRT.sendEvent(new InitialAverageSpeedEvent(min, i, 1, j - 100, 0));
+                    InitialAverageSpeedEvent ias = new InitialAverageSpeedEvent(min, i, 1, j - 100, 0);
+                    log.debug("Sending empty initial average speed " + ias);
+                    cepRT.sendEvent(ias);
+                    numEmpty++;
                 }
             }
         }
+        log.info("Sent " + numEmpty + " empty initial average speed events.");
 
     }
 

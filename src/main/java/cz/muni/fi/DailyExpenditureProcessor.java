@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import cz.muni.fi.eventtypes.DailyExpenditureQuery;
+import cz.muni.fi.eventtypes.DailyExpenditureResponse;
 import org.apache.log4j.Logger;
 
 /**
@@ -42,8 +43,10 @@ public class DailyExpenditureProcessor {
     final ComboPooledDataSource ds; // c3p0 pooled datasource
     private BufferedReader inputReader;
     final ExecutorService executor; // thread pool to handle the incoming queries without blocking
+    final OutputWriter outputWriter;
 
-    public DailyExpenditureProcessor(String histtollsfile) {
+    public DailyExpenditureProcessor(String histtollsfile, OutputWriter outputWriter) {
+        this.outputWriter = outputWriter;
         Path path = Paths.get(histtollsfile);
         try {
             inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
@@ -70,9 +73,19 @@ public class DailyExpenditureProcessor {
 //        preloadData();
     }
 
+    public void close() {
+        ds.close();
+        executor.shutdown();
+        try {
+            executor.awaitTermination(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for executor termination. ", e);
+        }
+    }
+
     // little benchmark
     public static void main(String[] args) throws InterruptedException {
-        DailyExpenditureProcessor dep = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt");
+        DailyExpenditureProcessor dep = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt", null);
         long start = System.currentTimeMillis();
         for (int i = 0; i < 100000; i++) {
             dep.handleQuery(new DailyExpenditureQuery((byte) 0, (short) 10, (i % 50) + 1, (byte) 0, 999, (byte) ((i % 67) + 1)));
@@ -95,15 +108,16 @@ public class DailyExpenditureProcessor {
                                                                                         " and day=" + deq.getDayy() +
                                                                                         " and xway=" + deq.getXway());
                     rs.next();
-                    log.debug(deq + " had tolls: " + rs.getInt("tolls"));
+                    DailyExpenditureResponse dailyExpenditureResponse = new DailyExpenditureResponse(deq.time, deq.qid, rs.getInt("tolls"));
+                    outputWriter.outputDailyExpenditureResponse(dailyExpenditureResponse);
                 } catch (SQLException e) {
-                    log.error("Query " + deq + " failed with: " + e);
+                    log.error("Query " + deq + " failed with: ", e);
                 } finally {
                     if (conn != null) {
                         try {
                             conn.close();
                         } catch (SQLException e) {
-                            System.out.println("Closing connection failed: " + e); // just print, ignore
+                            log.warn("Closing connection failed: ", e);
                         }
                     }
                 }

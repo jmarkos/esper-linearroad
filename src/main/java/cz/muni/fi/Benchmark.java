@@ -12,6 +12,7 @@ import com.espertech.esper.client.EPStatement;
 import com.espertech.esper.client.time.CurrentTimeEvent;
 import cz.muni.fi.eventtypes.*;
 import cz.muni.fi.listeners.*;
+import javafx.collections.ListChangeListener;
 import org.apache.log4j.Logger;
 
 /*
@@ -26,7 +27,6 @@ public class Benchmark {
     private static org.apache.log4j.Logger log = Logger.getLogger(Benchmark.class);
 
     DataDriver datadriver;
-    DailyExpenditureProcessor dailyExpenditureProcessor;
     public static int NUM_XWAYS = 1;
 
     public static void main(String[] args) throws InterruptedException, IOException {
@@ -58,7 +58,13 @@ public class Benchmark {
         EPServiceProvider cep = EPServiceProviderManager.getProvider(null, cepConfig);
         EPAdministrator cepAdm = cep.getEPAdministrator();
 
+        datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
+        datadriver.setSpeedup(1);
+
         final EPRuntime cepRT =  cep.getEPRuntime();
+        final OutputWriter outputWriter = new OutputWriter(datadriver);
+        final AssessmentProcessor assessmentProcessor = new AssessmentProcessor();
+        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt", outputWriter);
 
         // reports every 60 seconds of position reports as [minute, x, s, d, averageSpeed]
         EPStatement initialSpeedStats = cepAdm.createEPL(
@@ -77,23 +83,24 @@ public class Benchmark {
         // computes average speed over last 5 minutes, by using last 5 minute averages
         EPStatement speedStats = cepAdm.createEPL(
                 "select min, xway, segment, direction, avg(averageSpeed) as averageSpeed " +
-                        "from InitialSpeed.std:groupwin(min, xway, segment, direction).win:length(5) "
-                        +"group by min, xway, segment, direction ");
+                        "from InitialSpeed.std:groupwin(xway, segment, direction).win:length(5) "
+                        +"group by xway, segment, direction ");
         speedStats.addListener(new AverageSpeedListener(cepRT));
 
         EPStatement tolls = cepAdm.createEPL(
-                "select S.min as min, S.xway as xway, S.segment as segment, S.direction as direction, S.averageSpeed as averageSpeed, C.count as count, A.segment as accSegment " +
+                "select S.min as min, S.xway as xway, S.segment as segment, S.direction as direction, S.averageSpeed as averageSpeed, C.count as count, A.originalSegment as accSegment " +
                         "from Speed.win:time(90 sec) as S " +
                         "inner join CountStats.win:time(90 sec) as C on S.min=C.min and S.xway=C.xway and S.direction=C.direction and S.segment=C.segment " +
                         "left outer join Accident.win:time(90 sec).std:unique(min, xway, segment, direction) as A on A.min=S.min and A.xway=S.xway and A.direction=S.direction and A.segment=S.segment ");
         tolls.addListener(new TollListener(cepRT));
 
         // 5 second window on new cars - if it takes longer to compute the statistics, it's too late anyway
-        EPStatement tollAssessments = cepAdm.createEPL(
-                "select CHS.vid as vid, CHS.time as time, T.averageSpeed as averageSpeed, T.toll as toll " +
+        // can't do left outer join, because then the earlier CHS events won't 'wait' for their stats
+        EPStatement notifications = cepAdm.createEPL(
+                "select CHS.vid as vid, CHS.time as time, CHS.newSegment as newSegment, CHS.oldSegment as oldSegment, T.averageSpeed as averageSpeed, T.toll as toll, T.accSegment as accSegment " +
                         "from ChangedSegment.win:time(5 sec) as CHS " +
                         "inner join Toll.win:time(90 sec) as T on CHS.min=T.min and CHS.xway=T.xway and CHS.direction=T.direction and CHS.newSegment=T.segment ");
-        // TODO listener, assessment table/hashmap/?
+        notifications.addListener(new NotificationListener(cepRT, outputWriter, assessmentProcessor));
 
         // even if a car sends 4 reports with speed 0, it's position may change => not an accident
         // TODO need to join on x,s,d, too, because a car can travel on multiple xways at the same time
@@ -126,15 +133,16 @@ public class Benchmark {
                 "where pr2.segment!=pr1.segment ");
         changedSegment.addListener(new ChangedSegmentListener(cepRT));
 
-        try {
-            datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
-            datadriver.setSpeedup(1);
-            datadriver.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        datadriver.start();
 
-        dailyExpenditureProcessor = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt");
+        // need to send empty tolls for the first minute, so that the first cars have something to join on
+        for (int i = 0; i < Benchmark.NUM_XWAYS; i++) {
+            for (int j = 0; j < 100; j++) {
+                //int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, int toll
+                cepRT.sendEvent(new TollEvent(0, (byte)i, (byte) 0, (byte)j, 0, 0, -1, 0));
+                cepRT.sendEvent(new TollEvent(0, (byte)i, (byte) 1, (byte)j, 0, 0, -1, 0));
+            }
+        }
 
         int sum = 0;
         while (!datadriver.simulationEnded) {
@@ -149,16 +157,22 @@ public class Benchmark {
                         dailyExpenditureProcessor.handleQuery((DailyExpenditureQuery) newEvent);
                     }
                     if (newEvent.getType() == 2) {
-                        // TODO call to assessments agent
+                        AccountBalanceQuery abq = (AccountBalanceQuery) newEvent;
+                        AssessmentProcessor.Balance balance = assessmentProcessor.getBalance(abq.getVid());
+                        AccountBalanceResponse abr = new AccountBalanceResponse(abq.getTime(), abq.getQid(), balance.balance, balance.lastUpdated);
+                        outputWriter.outputAccountBalanceResponse(abr);
                     }
                     if (newEvent.getType() == 0) {
                         PositionReportEvent pre = (PositionReportEvent) newEvent;
-                        if (pre.speed == 0) {
+                        // only travel lanes count for accidents
+                        if (pre.speed == 0 && pre.lane >= 1 && pre.lane <= 3 ) {
                             cepRT.sendEvent(new StoppedCarEvent(pre));
                         }
                         if (pre.lane == 0) {
                             // entrance lane, we need to calculate the toll
-                            cepRT.sendEvent(new ChangedSegmentEvent(pre));
+                            ChangedSegmentEvent cse = new ChangedSegmentEvent(pre);
+                            log.debug("Sending changed segment " + cse);
+                            cepRT.sendEvent(cse);
                         }
                         // send the PositionReport for the statistics and further ChangedSegmentEvent detection
                         cepRT.sendEvent(pre);
@@ -170,6 +184,8 @@ public class Benchmark {
         }
         System.out.println("sum = " + sum);
         Thread.sleep(30000);
+        outputWriter.close();
+        dailyExpenditureProcessor.close();
     }
 
     public static LRBEvent createEvent(int time, int vid, int speed) {
