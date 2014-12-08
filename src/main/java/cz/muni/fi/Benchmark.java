@@ -12,7 +12,6 @@ import com.espertech.esper.client.EPStatement;
 import com.espertech.esper.client.time.CurrentTimeEvent;
 import cz.muni.fi.eventtypes.*;
 import cz.muni.fi.listeners.*;
-import javafx.collections.ListChangeListener;
 import org.apache.log4j.Logger;
 
 /*
@@ -97,7 +96,7 @@ public class Benchmark {
         // 5 second window on new cars - if it takes longer to compute the statistics, it's too late anyway
         // can't do left outer join, because then the earlier CHS events won't 'wait' for their stats
         EPStatement notifications = cepAdm.createEPL(
-                "select CHS.vid as vid, CHS.time as time, CHS.newSegment as newSegment, CHS.oldSegment as oldSegment, T.averageSpeed as averageSpeed, T.toll as toll, T.accSegment as accSegment " +
+                "select CHS.vid as vid, CHS.time as time, CHS.xway as xway, CHS.newSegment as newSegment, CHS.oldSegment as oldSegment, T.averageSpeed as averageSpeed, T.toll as toll, T.accSegment as accSegment " +
                         "from ChangedSegment.win:time(5 sec) as CHS " +
                         "inner join Toll.win:time(90 sec) as T on CHS.min=T.min and CHS.xway=T.xway and CHS.direction=T.direction and CHS.newSegment=T.segment ");
         notifications.addListener(new NotificationListener(cepRT, outputWriter, assessmentProcessor));
@@ -106,9 +105,9 @@ public class Benchmark {
         // TODO need to join on x,s,d, too, because a car can travel on multiple xways at the same time
         EPStatement trashedCars = cepAdm.createPattern(
                   " (every pr0=StoppedCar) " +
-                          "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
-                          "-> pr2=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
-                          "-> pr3=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec)");
+                          "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec) " +
+                          "-> pr2=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec) " +
+                          "-> pr3=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec)");
         trashedCars.addListener(new TrashedCarListener(cepRT));
 
         // distinct filters multiple-car accidents, because a new car matches with all cars in the accident
@@ -129,7 +128,7 @@ public class Benchmark {
         EPStatement changedSegment = cepAdm.createEPL(
                 "select pr2.time as time, pr2.vid as vid, pr1.segment as oldSegment, pr2.segment as newSegment, pr2.xway as xway, pr2.direction as direction, pr2.lane as lane " +
                 "from PositionReport.win:time(35 sec) as pr1 " +
-                "inner join PositionReport.win:length(1) as pr2 on pr1.vid=pr2.vid " +
+                "inner join PositionReport.win:length(1) as pr2 on pr1.vid=pr2.vid and pr1.xway=pr2.xway" +
                 "where pr2.segment!=pr1.segment ");
         changedSegment.addListener(new ChangedSegmentListener(cepRT));
 
@@ -170,6 +169,7 @@ public class Benchmark {
                         }
                         if (pre.lane == 0) {
                             // entrance lane, we need to calculate the toll
+                            // no need to assess toll, because there was no previous segment
                             ChangedSegmentEvent cse = new ChangedSegmentEvent(pre);
                             log.debug("Sending changed segment " + cse);
                             cepRT.sendEvent(cse);

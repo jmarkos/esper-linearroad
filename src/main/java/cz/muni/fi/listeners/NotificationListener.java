@@ -26,21 +26,14 @@ public class NotificationListener implements UpdateListener {
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
         for (EventBean newEvent : newEvents) {
+            // assess the toll for previous segment
+            if ((byte)newEvent.get("oldSegment") != -1) {
+                assessmentProcessor.assessToll((int)newEvent.get("vid"), (int) newEvent.get("xway"), (short) newEvent.get("time"));
+            }
             if ((int)newEvent.get("accSegment") == -1) { // no accident
-                if ((byte)newEvent.get("oldSegment") == -1) {
-                    // this was actually a CHS event with a car which entered the xway and didn't change segments
-                    // just remember the toll, send notification
-                    // this also solves the case when a car which left the xway has still a current toll, which will be overwritten
-                    assessmentProcessor.rememberToll((int) newEvent.get("vid"), (int)newEvent.get("toll"));
-                    TollNotificationEvent tne = new TollNotificationEvent(newEvent);
-                    outputWriter.outputTollNotification(tne);
-                } else {
-                    // regular CHS, assess toll for previous segment, and save the current one
-                    assessmentProcessor.assessToll((int) newEvent.get("vid"), (short) newEvent.get("time"));
-                    assessmentProcessor.rememberToll((int)newEvent.get("vid"), (int)newEvent.get("toll"));
-                    TollNotificationEvent tne = new TollNotificationEvent(newEvent);
-                    outputWriter.outputTollNotification(tne);
-                }
+                TollNotificationEvent tne = new TollNotificationEvent(newEvent);
+                assessmentProcessor.rememberToll(tne.vid, (int)newEvent.get("xway"), tne.toll);
+                outputWriter.outputTollNotification(tne);
             } else { // accident!
                 AccidentNotificationEvent ane = new AccidentNotificationEvent(newEvent);
                 outputWriter.outputAccidentNotification(ane);

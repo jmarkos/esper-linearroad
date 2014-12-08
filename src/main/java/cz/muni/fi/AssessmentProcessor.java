@@ -1,12 +1,13 @@
 package cz.muni.fi;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.log4j.Logger;
 
 /**
  *
- * ChangedSegment with no old segment (= new car), just assess the toll
- * ChangedSegment with existing old segment
+ * For every ChangedSegmentEvent, we need to assess the toll for the previous segment.
+ * For every TollNotificationEvent, we need to remember the toll charged for the new segment.
  *
  * TODO rename this
  */
@@ -14,32 +15,32 @@ public class AssessmentProcessor {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(AssessmentProcessor.class);
 
-    // vid, toll
-    HashMap<Integer, Integer> currentTolls; // the tolls which will be added later
-    // vid, tolls
-    HashMap<Integer, Balance> accountBalances; // running day total
+    // <vid, xway> -> <toll>
+    ConcurrentHashMap<CarKey, Integer> pendingTolls;
+    // <vid> -> <tolls, lastUpdated>
+    ConcurrentHashMap<Integer, Balance> accountBalances; // running day total
 
     public AssessmentProcessor() {
-        accountBalances = new HashMap<>();
-        currentTolls = new HashMap<>();
+        accountBalances = new ConcurrentHashMap<Integer, Balance>();
+        pendingTolls = new ConcurrentHashMap<CarKey, Integer>();
     }
 
-    public void rememberToll(int vid, int toll) {
-        currentTolls.put(vid, toll);
+    public void rememberToll(int vid, int xway, int toll) {
+        pendingTolls.put(new CarKey(vid, xway), toll);
     }
 
-    // Normally this should be called only by the real CHS events (not the ones created when the car is entering the xway),
-    // so there should be a previous toll, but if there was an accident there won't
-    // TODO dalsi dovod volat toto priamo ked je CHS event, ze to nesuvisi s accidentmi...
-    public void assessToll(int vid, short updateTime) {
+    public void assessToll(int vid, int xway, short updateTime) {
         Balance newBalance = new Balance();
         newBalance.balance = 0;
         newBalance.lastUpdated = updateTime;
         if (accountBalances.containsKey(vid)) {
             newBalance.balance += accountBalances.get(vid).balance;
         }
-        if (currentTolls.containsKey(vid)) {
-            newBalance.balance += currentTolls.get(vid);
+        CarKey ck = new CarKey(vid, xway);
+        // if the previous segment was affected by accident, there was no toll charged
+        if (pendingTolls.containsKey(ck)) {
+            newBalance.balance += pendingTolls.get(ck);
+            pendingTolls.remove(ck);
         }
         accountBalances.put(vid, newBalance);
     }
@@ -52,7 +53,6 @@ public class AssessmentProcessor {
             result.balance = 0;
             // TODO
             result.lastUpdated = -1;
-            return result;
         }
         return result;
     }
@@ -60,6 +60,37 @@ public class AssessmentProcessor {
     class Balance {
         int balance;
         short lastUpdated;
+    }
+
+    class CarKey {
+
+        int vid;
+        int xway;
+
+        public CarKey(int vid, int xway) {
+            this.vid = vid;
+            this.xway = xway;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            CarKey carKey = (CarKey) o;
+
+            if (vid != carKey.vid) return false;
+            if (xway != carKey.xway) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = vid;
+            result = 31 * result + xway;
+            return result;
+        }
     }
 
 }
