@@ -15,6 +15,7 @@ public class AssessmentProcessor {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(AssessmentProcessor.class);
 
+    // TODO this is probably pointless if no car switches xways
     // <vid, xway> -> <toll>
     ConcurrentHashMap<CarKey, Integer> pendingTolls;
     // <vid> -> <tolls, lastUpdated>

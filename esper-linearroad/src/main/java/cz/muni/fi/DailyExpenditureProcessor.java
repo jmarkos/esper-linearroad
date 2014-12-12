@@ -27,8 +27,9 @@ import org.apache.log4j.Logger;
  * To preload data directly from file (instead of millions of inserts), use:
  *     CREATE UNLOGGED TABLE histtolls(vid int, day int, xway int, tolls int);
  *     ALTER TABLE ONLY histtolls ADD CONSTRAINT histtolls_primary PRIMARY KEY (vid, day);
- *     \copy <table name> FROM '<file path>' DELIMITER ' ';
+ *     \copy <table name> FROM '<file path>' DELIMITER ',';
  *     (also comment the call to preloadData() function)
+ * 660MB file -> 3GB table
  *
  * Other possible approaches - keeping the data only in memory, using espers tables (new in esper 5.1.0)
  */
@@ -97,6 +98,10 @@ public class DailyExpenditureProcessor {
     }
 
     public void handleQuery(final DailyExpenditureQuery deq) {
+        if (deq.dayy == 0) { // there are no values in the historical-tolls file for day 0
+            log.debug("Skipping DailyExpenditureQuery for day 0: " + deq);
+            return;
+        }
         executor.execute(new Runnable() {
             @Override
             public void run() {

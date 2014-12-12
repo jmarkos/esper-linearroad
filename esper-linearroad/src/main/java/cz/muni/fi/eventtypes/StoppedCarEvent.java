@@ -13,6 +13,10 @@ public class StoppedCarEvent implements Event {
     public byte segment; // 0..99, 1 mile long
     public int position; /// 0..527999 feet
 
+    public StoppedCarEvent() {
+
+    }
+
     public StoppedCarEvent(PositionReportEvent pre) {
         this.type = pre.type;
         this.time = pre.time;

@@ -28,11 +28,11 @@ public class NotificationListener implements UpdateListener {
         for (EventBean newEvent : newEvents) {
             // assess the toll for previous segment
             if ((byte)newEvent.get("oldSegment") != -1) {
-                assessmentProcessor.assessToll((int)newEvent.get("vid"), (int) newEvent.get("xway"), (short) newEvent.get("time"));
+                assessmentProcessor.assessToll((int)newEvent.get("vid"), (byte) newEvent.get("xway"), (short) newEvent.get("time"));
             }
             if ((int)newEvent.get("accSegment") == -1) { // no accident
                 TollNotificationEvent tne = new TollNotificationEvent(newEvent);
-                assessmentProcessor.rememberToll(tne.vid, (int)newEvent.get("xway"), tne.toll);
+                assessmentProcessor.rememberToll(tne.vid, (byte)newEvent.get("xway"), tne.toll);
                 outputWriter.outputTollNotification(tne);
             } else { // accident!
                 AccidentNotificationEvent ane = new AccidentNotificationEvent(newEvent);

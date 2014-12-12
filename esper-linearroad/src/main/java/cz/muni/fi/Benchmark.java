@@ -26,7 +26,7 @@ public class Benchmark {
     private static org.apache.log4j.Logger log = Logger.getLogger(Benchmark.class);
 
     DataDriver datadriver;
-    public static int NUM_XWAYS = 1;
+    public static int NUM_XWAYS = 5;
 
     public static void main(String[] args) throws InterruptedException, IOException {
         Benchmark b = new Benchmark();
@@ -57,7 +57,8 @@ public class Benchmark {
         EPServiceProvider cep = EPServiceProviderManager.getProvider(null, cepConfig);
         EPAdministrator cepAdm = cep.getEPAdministrator();
 
-        datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
+//        datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
+        datadriver = new DataDriver("/home/van/dipl/lroad_data/5/merged5.out");
         datadriver.setSpeedup(1);
 
         final EPRuntime cepRT =  cep.getEPRuntime();
@@ -128,7 +129,7 @@ public class Benchmark {
         EPStatement changedSegment = cepAdm.createEPL(
                 "select pr2.time as time, pr2.vid as vid, pr1.segment as oldSegment, pr2.segment as newSegment, pr2.xway as xway, pr2.direction as direction, pr2.lane as lane " +
                 "from PositionReport.win:time(35 sec) as pr1 " +
-                "inner join PositionReport.win:length(1) as pr2 on pr1.vid=pr2.vid and pr1.xway=pr2.xway" +
+                "inner join PositionReport.win:length(1) as pr2 on pr1.vid=pr2.vid and pr1.xway=pr2.xway " +
                 "where pr2.segment!=pr1.segment ");
         changedSegment.addListener(new ChangedSegmentListener(cepRT));
 
