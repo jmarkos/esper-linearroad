@@ -12,6 +12,9 @@ public class PositionReportEvent implements Event {
     public byte segment; // 0..99, 1 mile long
     public int position; /// 0..527999 feet
 
+    public PositionReportEvent() {
+    }
+
     public PositionReportEvent(String[] properties) {
         this.type = Byte.valueOf(properties[0]);
         this.time = Short.valueOf(properties[1]);

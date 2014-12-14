@@ -13,6 +13,9 @@ public class TollEvent {
     public int accSegment = -1; // segment of the accident
     public int toll;
 
+    public TollEvent() {
+    }
+
     public TollEvent(int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, int toll) {
         this.min = min;
         this.xway = xway;

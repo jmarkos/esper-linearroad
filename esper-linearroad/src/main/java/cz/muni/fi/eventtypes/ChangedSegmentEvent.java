@@ -13,6 +13,9 @@ public class ChangedSegmentEvent {
     public byte oldSegment;
     public byte newSegment;
 
+    public ChangedSegmentEvent() {
+    }
+
     public ChangedSegmentEvent(short time, int vid, byte xway, byte lane, byte direction, byte oldSegment, byte newSegment) {
         this.time = time;
         this.min = computeMinute(time) - 1; // we are interested in the toll for the new segment from previous minute

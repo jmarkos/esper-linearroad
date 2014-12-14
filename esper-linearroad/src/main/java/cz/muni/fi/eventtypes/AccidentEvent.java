@@ -11,6 +11,9 @@ public class AccidentEvent {
     public byte originalSegment; // the segment where the accident truly occured
     public int position;
 
+    public AccidentEvent() {
+    }
+
     public AccidentEvent(int min, byte xway, byte direction, byte segment, byte originalSegment, int position) {
         this.min = min;
         this.xway = xway;
