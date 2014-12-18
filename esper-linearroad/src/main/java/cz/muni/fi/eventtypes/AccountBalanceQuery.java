@@ -7,6 +7,10 @@ public class AccountBalanceQuery implements Event {
     public int vid; // in L = 1 as high as 130 000
     public int qid; // query id
 
+    public AccountBalanceQuery() {
+
+    }
+
     public AccountBalanceQuery(String[] properties) {
         this.type = Byte.valueOf(properties[0]);
         this.time = Short.valueOf(properties[1]);

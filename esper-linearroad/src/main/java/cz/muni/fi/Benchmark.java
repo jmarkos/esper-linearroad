@@ -62,9 +62,9 @@ public class Benchmark {
         datadriver.setSpeedup(1);
 
         final EPRuntime cepRT =  cep.getEPRuntime();
-        final OutputWriter outputWriter = new OutputWriter(datadriver);
+        final OutputWriter outputWriter = new OutputWriterImpl(datadriver);
         final AssessmentProcessor assessmentProcessor = new AssessmentProcessor();
-        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt", outputWriter);
+        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor(null, outputWriter, "jdbc:postgresql://localhost/lrb");
 
         // reports every 60 seconds of position reports as [minute, x, s, d, averageSpeed]
         EPStatement initialSpeedStats = cepAdm.createEPL(

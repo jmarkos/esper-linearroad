@@ -12,6 +12,9 @@ public class DailyExpenditureQuery implements Event {
     // intentionally not called 'day', it's a reserved keyword in esper
     public byte dayy; // 1..69, 1 = yesterday, 69 = 10 weeks ago
 
+    public DailyExpenditureQuery() {
+    }
+
     public DailyExpenditureQuery(String[] properties) {
         this.type = Byte.valueOf(properties[0]);
         this.time = Short.valueOf(properties[1]);

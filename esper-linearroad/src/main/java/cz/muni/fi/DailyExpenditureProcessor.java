@@ -37,7 +37,6 @@ public class DailyExpenditureProcessor {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(DailyExpenditureProcessor.class);
 
-    String url = "jdbc:postgresql://localhost/lrb";
     String user = "lrb";
     String password = "lrb";
 
@@ -46,13 +45,17 @@ public class DailyExpenditureProcessor {
     final ExecutorService executor; // thread pool to handle the incoming queries without blocking
     final OutputWriter outputWriter;
 
-    public DailyExpenditureProcessor(String histtollsfile, OutputWriter outputWriter) {
+    // if histtollsfile is null, the historical tolls are already assumed to be in the DB
+    public DailyExpenditureProcessor(String histtollsfile, OutputWriter outputWriter, String dbUrl) {
         this.outputWriter = outputWriter;
-        Path path = Paths.get(histtollsfile);
-        try {
-            inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
-        } catch (IOException e) {
-            throw new RuntimeException("Reading file " + histtollsfile + " failed: ", e);
+        if (histtollsfile != null) {
+            Path path = Paths.get(histtollsfile);
+            try {
+                inputReader = Files.newBufferedReader(path, StandardCharsets.US_ASCII);
+            } catch (IOException e) {
+                throw new RuntimeException("Reading file " + histtollsfile + " failed: ", e);
+            }
+            preloadData();
         }
 
         ds = new ComboPooledDataSource();
@@ -61,7 +64,7 @@ public class DailyExpenditureProcessor {
         } catch (PropertyVetoException e) {
             throw new RuntimeException("No driver class was found? ", e);
         }
-        ds.setJdbcUrl(url);
+        ds.setJdbcUrl(dbUrl);
         ds.setUser(user);
         ds.setPassword(password);
 
@@ -70,8 +73,6 @@ public class DailyExpenditureProcessor {
         ds.setMaxPoolSize(20);
 
         executor = Executors.newFixedThreadPool(20);
-
-//        preloadData();
     }
 
     public void close() {
@@ -86,7 +87,7 @@ public class DailyExpenditureProcessor {
 
     // little benchmark
     public static void main(String[] args) throws InterruptedException {
-        DailyExpenditureProcessor dep = new DailyExpenditureProcessor("/home/van/dipl/linearRoad/input-downloaded/histtolls.txt", null);
+        DailyExpenditureProcessor dep = new DailyExpenditureProcessor(null, null, "jdbc:postgresql://localhost/lrb");
         long start = System.currentTimeMillis();
         for (int i = 0; i < 100000; i++) {
             dep.handleQuery(new DailyExpenditureQuery((byte) 0, (short) 10, (i % 50) + 1, (byte) 0, 999, (byte) ((i % 67) + 1)));
