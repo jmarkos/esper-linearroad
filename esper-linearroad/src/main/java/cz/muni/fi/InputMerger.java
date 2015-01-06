@@ -14,6 +14,11 @@ import cz.muni.fi.eventtypes.LRBEvent;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 /**
+ *
+ * =========== OBSOLETE ===========
+ * =========== OBSOLETE ===========
+ * =========== OBSOLETE ===========
+ *
  * Assumes the inputDir contains files cardatapoints.out0 ... cardatapoints.outN
  * Creates a single output file, sorted by time, with xway correcly set
  */

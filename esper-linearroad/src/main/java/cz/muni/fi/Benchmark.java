@@ -1,7 +1,9 @@
 package cz.muni.fi;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Properties;
 
 import com.espertech.esper.client.Configuration;
 import com.espertech.esper.client.EPAdministrator;
@@ -26,14 +28,31 @@ public class Benchmark {
     private static org.apache.log4j.Logger log = Logger.getLogger(Benchmark.class);
 
     DataDriver datadriver;
-    public static int NUM_XWAYS = 5;
+    public static int NUM_XWAYS = 0;
 
     public static void main(String[] args) throws InterruptedException, IOException {
         Benchmark b = new Benchmark();
-        b.run();
+        b.run(args);
     }
 
-    public void run() throws InterruptedException, IOException {
+    public void run(String[] args) throws InterruptedException, IOException {
+
+        Properties properties = new Properties();
+        for (String arg : args) {
+            if (arg.startsWith("-props=")) {
+                String filename = arg.split("=")[1];
+                FileReader fileReader = new FileReader(filename);
+                properties.load(fileReader);
+            }
+        }
+        System.out.println("p = " + properties);
+        if (properties.size() == 0) {
+            throw new RuntimeException("Provide the benchmark properties with -props=/path/to/file");
+        }
+
+        NUM_XWAYS = Integer.parseInt(properties.getProperty("BENCH_XWAYS"));
+        assert NUM_XWAYS > 0;
+
         Configuration cepConfig = new Configuration();
         cepConfig.addEventType("LRB", LRBEvent.class.getName()); // TODO not used
 
@@ -49,7 +68,7 @@ public class Benchmark {
         cepConfig.addEventType("TrashedCar", TrashedCarEvent.class.getName());
         cepConfig.addEventType("Accident", AccidentEvent.class.getName());
 
-        cepConfig.getEngineDefaults().getThreading().setInternalTimerEnabled(false);
+//        cepConfig.getEngineDefaults().getThreading().setInternalTimerEnabled(false); // TODO zapnut
 //        cepConfig.getEngineDefaults().getThreading().setThreadPoolInbound(true);
 //        cepConfig.getEngineDefaults().getThreading().setThreadPoolInboundNumThreads(4);
 
@@ -58,13 +77,14 @@ public class Benchmark {
         EPAdministrator cepAdm = cep.getEPAdministrator();
 
 //        datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
-        datadriver = new DataDriver("/home/van/dipl/lroad_data/5/merged5.out");
+//        datadriver = new DataDriver("/home/van/dipl/lroad_data/5/merged5.out");
+        datadriver = new DataDriver(properties.getProperty("BENCH_INPUTFILE"));
         datadriver.setSpeedup(1);
 
         final EPRuntime cepRT =  cep.getEPRuntime();
-        final OutputWriter outputWriter = new OutputWriterImpl(datadriver);
+        final OutputWriter outputWriter = new OutputWriterImpl(datadriver, properties.getProperty("BENCH_OUTPUTDIRECTORY"));
         final AssessmentProcessor assessmentProcessor = new AssessmentProcessor();
-        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor(null, outputWriter, "jdbc:postgresql://localhost/lrb");
+        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor(null, outputWriter, properties.getProperty("BENCH_DBURL"));
 
         // reports every 60 seconds of position reports as [minute, x, s, d, averageSpeed]
         EPStatement initialSpeedStats = cepAdm.createEPL(
@@ -79,6 +99,15 @@ public class Benchmark {
                         "from PositionReport.win:ext_timed_batch(time * 1000, 60 sec)  " +
                         "group by xway, segment, direction ");
         countStats.addListener(new CountListener(cepRT));
+
+//        cepRT.sendEvent(new PositionReportEvent((short)0, 101, (byte)1));
+//        cepRT.sendEvent(new PositionReportEvent((short)61, 101, (byte)1));
+//        cepRT.sendEvent(new PositionReportEvent((short)62, 101, (byte)1));
+//        cepRT.sendEvent(new PositionReportEvent((short)1, 102, (byte)2));
+////        cepRT.sendEvent(new PositionReportEvent((short)30, 101, (byte)1));
+//        cepRT.sendEvent(new PositionReportEvent((short)122, 101, (byte)1));
+//        Thread.sleep(1000);
+//        System.exit(0);
 
         // computes average speed over last 5 minutes, by using last 5 minute averages
         EPStatement speedStats = cepAdm.createEPL(
@@ -106,9 +135,9 @@ public class Benchmark {
         // TODO need to join on x,s,d, too, because a car can travel on multiple xways at the same time
         EPStatement trashedCars = cepAdm.createPattern(
                   " (every pr0=StoppedCar) " +
-                          "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec) " +
-                          "-> pr2=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec) " +
-                          "-> pr3=StoppedCar(vid=pr0.vid and position=pr0.position and xway=pr0.xway) where timer:within(35 sec)");
+                          "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
+                          "-> pr2=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
+                          "-> pr3=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec)");
         trashedCars.addListener(new TrashedCarListener(cepRT));
 
         // distinct filters multiple-car accidents, because a new car matches with all cars in the accident
@@ -149,7 +178,7 @@ public class Benchmark {
             ArrayDeque<Event> newEvents = datadriver.getNewEvents();
             if (newEvents != null) {
                 long time = newEvents.getFirst().getTime() * 1000;
-                cepRT.sendEvent(new CurrentTimeEvent(time));
+//                cepRT.sendEvent(new CurrentTimeEvent(time));
                 sum += newEvents.size();
                 System.out.println("sum = " + sum + ", sec: " + newEvents.getFirst().getTime());
                 for (Event newEvent : newEvents) {
@@ -187,107 +216,6 @@ public class Benchmark {
         Thread.sleep(30000);
         outputWriter.close();
         dailyExpenditureProcessor.close();
-    }
-
-    public static LRBEvent createEvent(int time, int vid, int speed) {
-        LRBEvent result = new LRBEvent();
-        result.time = (short) time;
-        result.vid = vid;
-        result.speed = (byte) speed;
-        return result;
-    }
-
-    public static void sendEventWithTime(EPRuntime cepRT, int time, int vid, int speed) throws InterruptedException {
-        cepRT.sendEvent(createEvent(time, vid, speed));
-        Thread.sleep(500);
-        sendTime(cepRT, (time + 1) * 1000);
-    }
-
-    public static LRBEvent createSegEvent(int time, int vid, int speed, int segment) {
-        LRBEvent result = new LRBEvent();
-        result.time = (short) time;
-        result.vid = vid;
-        result.speed = (byte) speed;
-        result.segment = (byte) segment;
-        return result;
-    }
-
-    // turn off esper's internal threading before running this
-    public static void testChangedSegment(EPRuntime cepRT) throws InterruptedException {
-        cepRT.sendEvent(new CurrentTimeEvent(0));
-        cepRT.sendEvent(new PositionReportEvent((short) 0, 108, (byte)67));
-        cepRT.sendEvent(new CurrentTimeEvent(30000));
-        cepRT.sendEvent(new PositionReportEvent((short) 0, 108, (byte)67));
-        cepRT.sendEvent(new CurrentTimeEvent(60000));
-        cepRT.sendEvent(new PositionReportEvent((short) 0, 108, (byte)68));
-        Thread.sleep(3000);
-        System.exit(0);
-
-
-        cepRT.sendEvent(new CurrentTimeEvent(0));
-        cepRT.sendEvent(new PositionReportEvent((short) 1, 1, (byte)0));
-        cepRT.sendEvent(new PositionReportEvent((short) 2, 2, (byte)99));
-        cepRT.sendEvent(new CurrentTimeEvent(32000));
-        cepRT.sendEvent(new PositionReportEvent((short) 30, 1, (byte)1));
-        cepRT.sendEvent(new PositionReportEvent((short) 32, 2, (byte)99));
-        cepRT.sendEvent(new CurrentTimeEvent(62000));
-        cepRT.sendEvent(new PositionReportEvent((short) 60, 1, (byte)1));
-        cepRT.sendEvent(new PositionReportEvent((short) 62, 2, (byte)99));
-        cepRT.sendEvent(new CurrentTimeEvent(92000));
-        cepRT.sendEvent(new PositionReportEvent((short) 90, 1, (byte)2));
-        cepRT.sendEvent(new PositionReportEvent((short) 92, 2, (byte)98));
-        Thread.sleep(3000);
-        System.exit(0);
-    }
-
-    public static void testAccidents(EPRuntime cepRT) throws InterruptedException {
-        cepRT.sendEvent(new CurrentTimeEvent(0));
-        // short time, int vid, byte xway, byte lane, byte direction, byte segment, int position
-        cepRT.sendEvent(new TrashedCarEvent((short)1, 101, (byte)0, (byte)0, (byte)0, (byte)4, 2333));
-        cepRT.sendEvent(new CurrentTimeEvent(1000));
-        cepRT.sendEvent(new TrashedCarEvent((short)1, 102, (byte)0, (byte)0, (byte)0, (byte)4, 2333));
-        cepRT.sendEvent(new CurrentTimeEvent(3000));
-        cepRT.sendEvent(new TrashedCarEvent((short)1, 103, (byte)0, (byte)0, (byte)0, (byte)4, 2333));
-        cepRT.sendEvent(new CurrentTimeEvent(40000));
-        cepRT.sendEvent(new TrashedCarEvent((short)1, 104, (byte)0, (byte)0, (byte)0, (byte)2, 2333));
-        cepRT.sendEvent(new CurrentTimeEvent(61000));
-        cepRT.sendEvent(new TrashedCarEvent((short)61, 105, (byte)0, (byte)0, (byte)0, (byte)2, 2333));
-//        cepRT.sendEvent(new CurrentTimeEvent(4000));
-//        cepRT.sendEvent(new TrashedCarEvent((short)1, 104, (byte)0, (byte)0, (byte)0, (byte)0, 2334));
-//        cepRT.sendEvent(new TrashedCarEvent((short)1, 105, (byte)0, (byte)0, (byte)0, (byte)3, 2334));
-//        cepRT.sendEvent(new TrashedCarEvent((short)1, 111, (byte)0, (byte)0, (byte)0, (byte)5, 883));
-//        cepRT.sendEvent(new TrashedCarEvent((short)1, 112, (byte)0, (byte)0, (byte)0, (byte)5, 883));
-        cepRT.sendEvent(new CurrentTimeEvent(65000));
-        cepRT.sendEvent(new CurrentTimeEvent(150000));
-
-        System.out.println("Sleeping " + 3000 + " milliseconds");
-        Thread.sleep(3000);
-        System.exit(0);
-    }
-
-    public static void testTrashedCars(EPRuntime cepRT) throws InterruptedException {
-        sendEventWithTime(cepRT, 30, 1, 0);
-        sendEventWithTime(cepRT, 60, 1, 0);
-        sendEventWithTime(cepRT, 90, 1, 0);
-        sendEventWithTime(cepRT, 120, 1, 1);
-        sendEventWithTime(cepRT, 150, 1, 0);
-        sendEventWithTime(cepRT, 180, 1, 3);
-        sendEventWithTime(cepRT, 210, 1, 4);
-        sendEventWithTime(cepRT, 240, 1, 0);
-        sendEventWithTime(cepRT, 270, 1, 0);
-        sendEventWithTime(cepRT, 300, 1, 1);
-        sendEventWithTime(cepRT, 330, 1, 0);
-        sendEventWithTime(cepRT, 360, 1, 0);
-        sendEventWithTime(cepRT, 390, 1, 0);
-        sendEventWithTime(cepRT, 420, 1, 3);
-        sendTime(cepRT, 450000);
-        Thread.sleep(3000);
-        System.exit(0);
-    }
-
-    public static void sendTime(EPRuntime cepRT, long millis) {
-        cepRT.sendEvent(new CurrentTimeEvent(millis));
-        System.out.println("send time: " + millis);
     }
 
 }

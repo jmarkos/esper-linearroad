@@ -19,7 +19,7 @@ public class OutputWriterImpl implements OutputWriter {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(OutputWriterImpl.class);
 
-    public String outputDirectory="/tmp/esper-linearroad/outputFiles/";
+    public String outputDirectory;
     public String tollNotificationsFileName = "tollnotifications.txt";
     public String accidentNotificationsFileName = "accidentnotification.txt";
     public String accountBalanceResponsesFileName = "accountbalances.txt";
@@ -32,7 +32,8 @@ public class OutputWriterImpl implements OutputWriter {
 
     DataDriver dataDriver;
 
-    public OutputWriterImpl(DataDriver dataDriver) {
+    public OutputWriterImpl(DataDriver dataDriver, String _outputDirectory) {
+        this.outputDirectory = _outputDirectory;
         try {
             tollWriter = new BufferedWriter(new FileWriter(new File(outputDirectory + tollNotificationsFileName)));
             accidentWriter = new BufferedWriter(new FileWriter(new File(outputDirectory + accidentNotificationsFileName)));
@@ -79,7 +80,7 @@ public class OutputWriterImpl implements OutputWriter {
 
     public synchronized void outputDailyExpenditureResponse(DailyExpenditureResponse der) {
         der.setOutputTime((short) dataDriver.lastSecond);
-        log.info("Writing daily expenditure response " + der);
+        log.debug("Writing daily expenditure response " + der);
         try {
             dailyExpendituresWriter.write(der.toFileString());
             dailyExpendituresWriter.newLine();
@@ -90,7 +91,7 @@ public class OutputWriterImpl implements OutputWriter {
 
     public void outputAccountBalanceResponse(AccountBalanceResponse abr) {
         abr.setOutputTime((short) dataDriver.lastSecond);
-        log.info("Writing account balance response " + abr);
+        log.debug("Writing account balance response " + abr);
         try {
             accountBalancesWriter.write(abr.toFileString());
             accountBalancesWriter.newLine();

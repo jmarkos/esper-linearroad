@@ -3,6 +3,9 @@ package cz.muni.fi.listeners;
 import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.UpdateListener;
 
+/**
+ * Just a helper listener, useful for testing.
+ */
 public class PrintFieldListener implements UpdateListener {
 
     private final String field;

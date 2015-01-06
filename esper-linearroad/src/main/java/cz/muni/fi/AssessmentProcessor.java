@@ -15,33 +15,31 @@ public class AssessmentProcessor {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(AssessmentProcessor.class);
 
-    // TODO this is probably pointless if no car switches xways
-    // <vid, xway> -> <toll>
-    ConcurrentHashMap<CarKey, Integer> pendingTolls;
+    // <vid> -> <toll>
+    ConcurrentHashMap<Integer, Integer> pendingTolls;
     // <vid> -> <tolls, lastUpdated>
     ConcurrentHashMap<Integer, Balance> accountBalances; // running day total
 
     public AssessmentProcessor() {
         accountBalances = new ConcurrentHashMap<Integer, Balance>();
-        pendingTolls = new ConcurrentHashMap<CarKey, Integer>();
+        pendingTolls = new ConcurrentHashMap<Integer, Integer>();
     }
 
-    public void rememberToll(int vid, int xway, int toll) {
-        pendingTolls.put(new CarKey(vid, xway), toll);
+    public void rememberToll(int vid, int toll) {
+        pendingTolls.put(vid, toll);
     }
 
-    public void assessToll(int vid, int xway, short updateTime) {
+    public void assessToll(int vid, short updateTime) {
         Balance newBalance = new Balance();
         newBalance.balance = 0;
         newBalance.lastUpdated = updateTime;
         if (accountBalances.containsKey(vid)) {
             newBalance.balance += accountBalances.get(vid).balance;
         }
-        CarKey ck = new CarKey(vid, xway);
         // if the previous segment was affected by accident, there was no toll charged
-        if (pendingTolls.containsKey(ck)) {
-            newBalance.balance += pendingTolls.get(ck);
-            pendingTolls.remove(ck);
+        if (pendingTolls.containsKey(vid)) {
+            newBalance.balance += pendingTolls.get(vid);
+            pendingTolls.remove(vid);
         }
         accountBalances.put(vid, newBalance);
     }
@@ -58,40 +56,9 @@ public class AssessmentProcessor {
         return result;
     }
 
-    class Balance {
-        int balance;
-        short lastUpdated;
-    }
-
-    class CarKey {
-
-        int vid;
-        int xway;
-
-        public CarKey(int vid, int xway) {
-            this.vid = vid;
-            this.xway = xway;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            CarKey carKey = (CarKey) o;
-
-            if (vid != carKey.vid) return false;
-            if (xway != carKey.xway) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = vid;
-            result = 31 * result + xway;
-            return result;
-        }
+    public class Balance {
+        public int balance;
+        public short lastUpdated;
     }
 
 }

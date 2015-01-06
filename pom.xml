@@ -17,6 +17,7 @@
     <modules>
         <module>esper-linearroad</module>
         <module>storm-linearroad</module>
+	<module>custom-scheduler</module>
     </modules>
 
 </project>

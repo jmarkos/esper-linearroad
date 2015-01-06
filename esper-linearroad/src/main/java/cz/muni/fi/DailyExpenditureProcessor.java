@@ -113,8 +113,12 @@ public class DailyExpenditureProcessor {
                                                                                         "vid=" + deq.getVid() +
                                                                                         " and day=" + deq.getDayy() +
                                                                                         " and xway=" + deq.getXway());
-                    rs.next();
-                    DailyExpenditureResponse dailyExpenditureResponse = new DailyExpenditureResponse(deq.time, deq.qid, rs.getInt("tolls"));
+                    DailyExpenditureResponse dailyExpenditureResponse;
+                    if (rs.next()) {
+                        dailyExpenditureResponse = new DailyExpenditureResponse(deq.time, deq.qid, rs.getInt("tolls"));
+                    } else {
+                        dailyExpenditureResponse = new DailyExpenditureResponse(deq.time, deq.qid, 0);
+                    }
                     outputWriter.outputDailyExpenditureResponse(dailyExpenditureResponse);
                 } catch (SQLException e) {
                     log.error("Query " + deq + " failed with: ", e);
