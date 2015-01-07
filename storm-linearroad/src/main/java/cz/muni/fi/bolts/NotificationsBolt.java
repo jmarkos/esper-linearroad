@@ -85,13 +85,11 @@ public class NotificationsBolt extends BaseRichBolt {
                         AccidentNotificationEvent accidentNotificationEvent = new AccidentNotificationEvent(newEvent);
                         accidentNotificationEvent.setOutputTime((short) timeService.getTime());
                         log.debug("Writing accident notification {}", accidentNotificationEvent);
-//                        System.out.println("Writing accident notification " + accidentNotificationEvent);
                         accidentNotificationWriter.println(accidentNotificationEvent.toFileString());
                     } else {
                         TollNotificationEvent tollNotificationEvent = new TollNotificationEvent(newEvent);
                         tollNotificationEvent.setOutputTime((short) timeService.getTime());
                         log.debug("Writing toll notification {}", tollNotificationEvent);
-//                        System.out.println("Writing toll notification " + tollNotificationEvent);
                         tollNotificationWriter.println(tollNotificationEvent.toFileString());
                     }
                 }

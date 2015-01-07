@@ -57,7 +57,6 @@ public class ChangedSegmentBolt  extends BaseRichBolt {
                 for (EventBean newEvent : newEvents) {
                     ChangedSegmentEvent cse = new ChangedSegmentEvent(newEvent);
                     log.debug("Sending changed segment {}", cse);
-//                    System.out.println("Sending changed segment " + cse);
                     // ChangedSegmentEvent = short time, int min, int vid, byte xway, byte lane, byte direction, byte oldSegment, byte newSegment
                     _collector.emit("changedSegment", new Values((short) cse.time, cse.min, cse.vid, (byte) cse.xway, (byte) cse.lane, (byte) cse.direction, (byte) cse.oldSegment, (byte) cse.newSegment));
                 }

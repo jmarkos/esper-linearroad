@@ -29,7 +29,8 @@ public class DataDriver {
     public long lastSecond = -1;
     private Event leftOverEvent = null;
     public boolean simulationEnded = false;
-    private int speedup = 1; // to speed up the simulation (10 means 10800 / 10 = 1080 seconds)
+    // to speed up the simulation (10 means 10800 / 10 = 1080 seconds) - this DOES NOT speed up the queries themselves
+    private int speedup = 1;
 
     public void setSpeedup(int speedup) {
         this.speedup = speedup;
@@ -55,7 +56,6 @@ public class DataDriver {
             // no new events
             return null;
         }
-//        System.out.println("currentSecond = " + currentSecond);
         lastSecond = currentSecond;
         String line = null;
         if (leftOverEvent != null) {
@@ -100,6 +100,7 @@ public class DataDriver {
         }
     }
 
+    // used for testing
     public static void simpleIterate() throws InterruptedException {
 //        Path path = Paths.get("esper-lrb/data/datafile20seconds.dat");
         Path path = Paths.get("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat"); // 12mil lines
@@ -142,8 +143,8 @@ public class DataDriver {
         Thread.sleep(10000);
     }
 
+    // just for testing
     public static void main(String[] args) throws InterruptedException, IOException {
-//        DataDriver dd = new DataDriver("esper-lrb/data/datafile20seconds.dat");
         DataDriver dd = new DataDriver("esper-lrb/data/datafile3hours.dat");
         dd.start();
         Thread.sleep(1900);

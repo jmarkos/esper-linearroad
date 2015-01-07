@@ -3,12 +3,11 @@ package cz.muni.fi.eventtypes;
 public class AccountBalanceQuery implements Event {
 
     public byte type;
-    public short time; // 0..10799 seconds
-    public int vid; // in L = 1 as high as 130 000
-    public int qid; // query id
+    public short time;
+    public int vid;
+    public int qid;
 
     public AccountBalanceQuery() {
-
     }
 
     public AccountBalanceQuery(String[] properties) {

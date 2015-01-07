@@ -7,6 +7,9 @@ import cz.muni.fi.Benchmark;
 import cz.muni.fi.eventtypes.InitialAverageSpeedEvent;
 import org.apache.log4j.Logger;
 
+/**
+ * See CountListener for an explanation of the work done here.
+ */
 public class InitialAverageSpeedListener implements UpdateListener {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(InitialAverageSpeedListener.class);
@@ -20,8 +23,6 @@ public class InitialAverageSpeedListener implements UpdateListener {
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
         log.info("Number of active segments: " + newEvents.length);
-        // we need to list through and find all missing segments (segments which didn't have any action), and produce
-        // an 'empty' statistic event for them, so that the downstream query can use length(5)
 
         // east=0, west=1, first 100 is east, 100-200 is west
         boolean[][] existingStats = new boolean[Benchmark.NUM_XWAYS][200];

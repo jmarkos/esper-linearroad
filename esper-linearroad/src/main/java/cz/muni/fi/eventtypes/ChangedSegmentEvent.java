@@ -4,12 +4,12 @@ import com.espertech.esper.client.EventBean;
 
 public class ChangedSegmentEvent {
 
-    public short time; // 0..10799 seconds
+    public short time;
     public int min;
-    public int vid; // in L = 1 as high as 130 000
-    public byte xway; // 0..L-1
-    public byte lane; // 0..4, 0 = entrance, 4 = exit, 1-3 drive lanes
-    public byte direction; // 0 = East, 1 = West
+    public int vid;
+    public byte xway;
+    public byte lane;
+    public byte direction;
     public byte oldSegment;
     public byte newSegment;
 

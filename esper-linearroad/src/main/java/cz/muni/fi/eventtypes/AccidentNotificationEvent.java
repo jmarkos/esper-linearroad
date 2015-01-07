@@ -5,7 +5,7 @@ import com.espertech.esper.client.EventBean;
 public class AccidentNotificationEvent {
 
     public byte type; // =1
-    public short time; // time of the position report which triggered this
+    public short time; // time of the position report which triggered this notification
     public short outputTime;
     public int vid;
     public int segment;

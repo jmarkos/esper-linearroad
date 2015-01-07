@@ -25,10 +25,14 @@ import cz.muni.fi.spouts.DataSpout;
 
 
 /**
- * Benchmark properties:
+ *
+ * The code in this module is not particularly pretty, lots of typecasting since Storm tuples are untyped.
+ * We didn't reuse the existing listeners from centralized solution because now the new events are sent
+ * to Storm, not Esper.
+ *
+ * Benchmark properties are the same as for the centralized implementation:
  *
  * BENCH_INPUTFILE       - file with the input data
- * BENCH_HISTFILE        - contains the
  * BENCH_XWAYS           - number of expressways used in the input file
  * BENCH_OUTPUTDIRECTORY - directory where the output files will be saved
  * BENCH_DBURL           - database jdbc url with the historical data
@@ -37,40 +41,6 @@ import cz.muni.fi.spouts.DataSpout;
  *
  */
 public class LinearRoadTopology {
-
-    public static class CountPRBolt extends BaseRichBolt {
-        OutputCollector _collector;
-
-        int taskId;
-
-        @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
-            _collector = collector;
-            this.taskId = context.getThisTaskId();
-        }
-
-        int count = 0;
-        short currentTime = 0;
-
-        @Override
-        public void execute(Tuple tuple) {
-            count++;
-            short receivedTime = tuple.getShort(1);
-            if (receivedTime > currentTime)
-                currentTime = receivedTime;
-            if (receivedTime < currentTime)
-                System.out.println("Ordering broken!");
-            if (count % 100000 == 0) {
-                System.out.println("CountPRBolt" + taskId + " count: " + count);
-            }
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-//            declarer.declare(new Fields("word"));
-        }
-
-    }
 
     public static void main(String[] args) throws Exception {
 
@@ -89,8 +59,6 @@ public class LinearRoadTopology {
         }
 
         System.out.println("properties = " + properties);
-        int num_xways = Integer.parseInt(properties.getProperty("BENCH_XWAYS"));
-
 
         Config conf = new Config();
 //        conf.setDebug(true);
@@ -105,17 +73,13 @@ public class LinearRoadTopology {
             TopologyBuilder builder = new TopologyBuilder();
 
             builder.setSpout("dataSpout", new DataSpout(), 1);
-//            builder.setBolt("print", new CountPRBolt(), 1).fieldsGrouping("dataSpout", "positionReport", new Fields("xway"));
-//        builder.setBolt("exclaim2", new ExclamationBolt(), 2).shuffleGrouping("exclaim1");
             builder.setBolt("dailyExpenditureBolt", new DailyExpenditureBolt(), 1)
                     .allGrouping("dataSpout", "dailyExpenditureQuery");
             builder.setBolt("accidentDetectionBolt", new AccidentDetectionBolt(), 1)
                     .fieldsGrouping("dataSpout", "stoppedCar", new Fields("xway"));
-            // TODO maybe just 2 for both tolls/chs
             builder.setBolt("tollsBolt", new TollsBolt(), 1)
                     .fieldsGrouping("dataSpout", "positionReport", new Fields("xway"))
                     .fieldsGrouping("accidentDetectionBolt", "accident", new Fields("xway"));
-            // TODO could be possibly grouped by vid? as well as accidentbolt, but since cars dont change xways, xway gives us a better distribution
             builder.setBolt("changedSegmentBolt", new ChangedSegmentBolt(), 1)
                     .fieldsGrouping("dataSpout", "positionReport", new Fields("xway"));
             builder.setBolt("notificationsBolt", new NotificationsBolt(), 1)
@@ -136,17 +100,13 @@ public class LinearRoadTopology {
             TopologyBuilder builder = new TopologyBuilder();
 
             builder.setSpout("dataSpout", new DataSpout(), 1);
-//            builder.setBolt("print", new CountPRBolt(), 1).fieldsGrouping("dataSpout", "positionReport", new Fields("xway"));
-//        builder.setBolt("exclaim2", new ExclamationBolt(), 2).shuffleGrouping("exclaim1");
             builder.setBolt("dailyExpenditureBolt", new DailyExpenditureBolt(), 1)
                     .allGrouping("dataSpout", "dailyExpenditureQuery");
             builder.setBolt("accidentDetectionBolt", new AccidentDetectionBolt(), 2)
                     .fieldsGrouping("dataSpout", "stoppedCar", new Fields("xway"));
-            // TODO maybe just 2 for both tolls/chs
             builder.setBolt("tollsBolt", new TollsBolt(), 4)
                     .fieldsGrouping("dataSpout", "positionReport", new Fields("xway"))
                     .fieldsGrouping("accidentDetectionBolt", "accident", new Fields("xway"));
-            // TODO could be possibly grouped by vid? as well as accidentbolt, but since cars dont change xways, xway gives us a better distribution
             builder.setBolt("changedSegmentBolt", new ChangedSegmentBolt(), 2)
                     .fieldsGrouping("dataSpout", "positionReport", new Fields("xway"));
             builder.setBolt("notificationsBolt", new NotificationsBolt(), 2)
@@ -157,6 +117,7 @@ public class LinearRoadTopology {
                     .fieldsGrouping("notificationsBolt", new Fields("vid"));
 
             long time = System.currentTimeMillis() / 1000;
+            // just so its at least 10 seconds in the future (to give Storm time to distribute the topology), rounded
             long startTime = ((time + 20) / 10) * 10;
             conf.put("BENCH_STARTTIME", startTime);
             System.out.println("current time: " + time);

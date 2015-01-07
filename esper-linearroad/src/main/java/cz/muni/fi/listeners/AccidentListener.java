@@ -6,6 +6,12 @@ import com.espertech.esper.client.UpdateListener;
 import cz.muni.fi.eventtypes.AccidentEvent;
 import org.apache.log4j.Logger;
 
+/**
+ * For each Accident that is detected, we also create Accident events for all affected segments*,
+ * so that the downstream Toll query can join on them.
+ *
+ * * remember that the accident notifications are sent for cars which are approaching the accident
+ */
 public class AccidentListener implements UpdateListener {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(AccidentListener.class);

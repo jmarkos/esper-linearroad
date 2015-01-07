@@ -54,7 +54,6 @@ public class AccountsBolt extends BaseRichBolt {
         AccountBalanceResponse abr = new AccountBalanceResponse(abq.getTime(), abq.getQid(), balance.balance, balance.lastUpdated);
         abr.setOutputTime((short) timeService.getTime());
         log.debug("Writing account balance response {}", abr);
-//        System.out.println("Writing account balance response " + abr);
         accountBalanceWriter.println(abr.toFileString());
         if (accountBalanceWriter.checkError()) {
             log.error("Error writing AccountBalanceResponse to a file.");

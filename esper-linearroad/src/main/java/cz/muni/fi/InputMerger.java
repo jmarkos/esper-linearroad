@@ -18,6 +18,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
  * =========== OBSOLETE ===========
  * =========== OBSOLETE ===========
  * =========== OBSOLETE ===========
+ * (misunderstood the way the generator creates the input file)
  *
  * Assumes the inputDir contains files cardatapoints.out0 ... cardatapoints.outN
  * Creates a single output file, sorted by time, with xway correcly set

@@ -5,11 +5,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 /**
- *
  * For every ChangedSegmentEvent, we need to assess the toll for the previous segment.
  * For every TollNotificationEvent, we need to remember the toll charged for the new segment.
  *
- * TODO rename this
+ * LRB states, that when a vehicle receives a TollNotification, the toll is not written until after
+ * the vehicle travels the whole segment (so that if it leaves, it is not charged)
  */
 public class AssessmentProcessor {
 

@@ -5,12 +5,12 @@ public class DailyExpenditureQuery implements Event {
     // file historicalTolls has structure: vid, day, xway, tolls
 
     public byte type;
-    public short time; // 0..10799 seconds
-    public int vid; // in L = 1 as high as 130 000
-    public byte xway; // 0..L-1
-    public int qid; // query id
+    public short time;
+    public int vid;
+    public byte xway;
+    public int qid;
     // intentionally not called 'day', it's a reserved keyword in esper
-    public byte dayy; // 1..69, 1 = yesterday, 69 = 10 weeks ago
+    public byte dayy;
 
     public DailyExpenditureQuery() {
     }

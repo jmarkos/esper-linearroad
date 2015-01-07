@@ -3,14 +3,14 @@ package cz.muni.fi.eventtypes;
 public class PositionReportEvent implements Event {
 
     public byte type;
-    public short time; // 0..10799 seconds
-    public int vid; // in L = 1 as high as 130 000
-    public byte speed; // 0..100 mph
-    public byte xway; // 0..L-1
-    public byte lane; // 0..4, 0 = entrance, 4 = exit, 1-3 drive lanes
-    public byte direction; // 0 = East, 1 = West
-    public byte segment; // 0..99, 1 mile long
-    public int position; /// 0..527999 feet
+    public short time;
+    public int vid;
+    public byte speed;
+    public byte xway;
+    public byte lane;
+    public byte direction;
+    public byte segment;
+    public int position;
 
     public PositionReportEvent() {
     }

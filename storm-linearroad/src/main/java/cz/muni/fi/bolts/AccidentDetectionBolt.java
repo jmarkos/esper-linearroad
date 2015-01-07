@@ -61,7 +61,6 @@ public class AccidentDetectionBolt extends BaseRichBolt {
                 tce.direction = sce.direction;
                 tce.position = sce.position;
                 log.debug("Sending trashed car {}", tce);
-//                System.out.println("Sending trashed car " + tce);
                 cepRT.sendEvent(tce);
             }
         });
@@ -91,7 +90,6 @@ public class AccidentDetectionBolt extends BaseRichBolt {
                                 break;
                             }
                             log.debug("Sending accident: {}, {}, {}, {}, {}, {}", min, xway, direction, segment - i, segment, position);
-//                            System.out.println("Sending accident ");
                             // AccidentEvent = int min, byte xway, byte direction, byte segment, byte originalSegment, int position
                             _collector.emit("accident", new Values(min, xway, direction, (byte) (segment - i), (byte) segment, position));
                         }
@@ -104,7 +102,6 @@ public class AccidentDetectionBolt extends BaseRichBolt {
                                 break;
                             }
                             log.debug("Sending accident: {}, {}, {}, {}, {}, {}", min, xway, direction, segment + i, segment, position);
-//                            System.out.println("Sending accident ");
                             // AccidentEvent = int min, byte xway, byte direction, byte segment, byte originalSegment, int position
                             _collector.emit("accident", new Values(min, xway, direction, (byte) (segment + i), (byte) segment, position));
                         }

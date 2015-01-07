@@ -8,6 +8,13 @@ import cz.muni.fi.eventtypes.CountEvent;
 import cz.muni.fi.eventtypes.InitialAverageSpeedEvent;
 import org.apache.log4j.Logger;
 
+/**
+ * Some segments, mainly at the beginning of the simulation, have no traffic, so no
+ * statistics events are created for them. But we need them for the Toll query
+ * (using outer joins doesn't work, because outer joins don't wait for the (possibly) null side
+ * of the join - which means that if the left side comes before the right side, it passes right through, but
+ * we want it to wait so we use inner join and therefore need statistics also for non-traffic segments.
+ */
 public class CountListener implements UpdateListener {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(CountListener.class);
@@ -21,8 +28,6 @@ public class CountListener implements UpdateListener {
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents) {
         log.info("Number of active segments: " + newEvents.length);
-        // we need to list through and find all missing segments (segments which didn't have any action), and produce
-        // an 'empty' statistic event for them, so that we can later do an inner join
 
         // east=0, west=1, first 100 is east, 100-200 is west
         boolean[][] existingStats = new boolean[Benchmark.NUM_XWAYS][200];

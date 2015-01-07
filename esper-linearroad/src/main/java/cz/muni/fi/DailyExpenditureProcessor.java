@@ -28,25 +28,21 @@ import org.apache.log4j.Logger;
  *     CREATE UNLOGGED TABLE histtolls(vid int, day int, xway int, tolls int);
  *     ALTER TABLE ONLY histtolls ADD CONSTRAINT histtolls_primary PRIMARY KEY (vid, day);
  *     \copy <table name> FROM '<file path>' DELIMITER ',';
- *     (also comment the call to preloadData() function)
- * 660MB file -> 3GB table
  *
- * Other possible approaches - keeping the data only in memory, using espers tables (new in esper 5.1.0)
+ * 660MB file -> 3GB table
  */
 public class DailyExpenditureProcessor {
 
     private static org.apache.log4j.Logger log = Logger.getLogger(DailyExpenditureProcessor.class);
-
-    String user = "lrb";
-    String password = "lrb";
 
     final ComboPooledDataSource ds; // c3p0 pooled datasource
     private BufferedReader inputReader;
     final ExecutorService executor; // thread pool to handle the incoming queries without blocking
     final OutputWriter outputWriter;
 
-    // if histtollsfile is null, the historical tolls are already assumed to be in the DB
-    public DailyExpenditureProcessor(String histtollsfile, OutputWriter outputWriter, String dbUrl) {
+    // if histtollsfile is null, the historical tolls are assumed to be already loaded in the DB
+    // it is REALLY not recommended to provide a file, it is super slow, use the method in the class comment
+    public DailyExpenditureProcessor(String histtollsfile, OutputWriter outputWriter, String dbUrl, String user, String password) {
         this.outputWriter = outputWriter;
         if (histtollsfile != null) {
             Path path = Paths.get(histtollsfile);
@@ -83,19 +79,6 @@ public class DailyExpenditureProcessor {
         } catch (InterruptedException e) {
             log.error("Interrupted while waiting for executor termination. ", e);
         }
-    }
-
-    // little benchmark
-    public static void main(String[] args) throws InterruptedException {
-        DailyExpenditureProcessor dep = new DailyExpenditureProcessor(null, null, "jdbc:postgresql://localhost/lrb");
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < 100000; i++) {
-            dep.handleQuery(new DailyExpenditureQuery((byte) 0, (short) 10, (i % 50) + 1, (byte) 0, 999, (byte) ((i % 67) + 1)));
-        }
-        dep.executor.shutdown();
-        dep.executor.awaitTermination(200, TimeUnit.SECONDS);
-        long duration = System.currentTimeMillis() - start;
-        System.out.println("duration = " + duration);
     }
 
     public void handleQuery(final DailyExpenditureQuery deq) {
@@ -135,6 +118,20 @@ public class DailyExpenditureProcessor {
         });
     }
 
+    // little benchmark
+    public static void main(String[] args) throws InterruptedException {
+        DailyExpenditureProcessor dep = new DailyExpenditureProcessor(null, null, "jdbc:postgresql://localhost/lrb", "lrb", "lrb");
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 100000; i++) {
+            dep.handleQuery(new DailyExpenditureQuery((byte) 0, (short) 10, (i % 50) + 1, (byte) 0, 999, (byte) ((i % 67) + 1)));
+        }
+        dep.executor.shutdown();
+        dep.executor.awaitTermination(200, TimeUnit.SECONDS);
+        long duration = System.currentTimeMillis() - start;
+        System.out.println("duration = " + duration);
+    }
+
+    // slow, avoid using this
     public void preloadData() {
         Connection con = null;
         Statement st = null;

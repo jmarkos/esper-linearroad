@@ -8,9 +8,9 @@ public class InitialAverageSpeedEvent {
     private static org.apache.log4j.Logger log = Logger.getLogger(InitialAverageSpeedEvent.class);
 
     public int min; // minute for which the stats were computed, max 180
-    public byte xway; // 0..L-1
-    public byte direction; // 0 = East, 1 = West
-    public byte segment; // 0..99, 1 mile long
+    public byte xway;
+    public byte direction;
+    public byte segment;
     public double averageSpeed;
 
     public InitialAverageSpeedEvent(int min, int xway, int direction, int segment, double averageSpeed) {

@@ -30,9 +30,11 @@ public class DailyExpenditureBolt extends BaseRichBolt {
         _collector = collector;
         String outputDirectory = (String) conf.get("BENCH_OUTPUTDIRECTORY");
         String dbUrl = (String) conf.get("BENCH_DBURL");
+        String user = (String) conf.get("BENCH_DBUSERNAME");
+        String password = (String) conf.get("BENCH_DBPASSWORD");
         int taskId = context.getThisTaskId();
         TimeService timeService = new TimeService((Long) conf.get("BENCH_STARTTIME"));
-        dailyExpenditureProcessor = new DailyExpenditureProcessor(null, new DailyExpenditureOutputWriter(outputDirectory, taskId, timeService), dbUrl);
+        dailyExpenditureProcessor = new DailyExpenditureProcessor(null, new DailyExpenditureOutputWriter(outputDirectory, taskId, timeService), dbUrl, user, password);
     }
 
     @Override
@@ -87,7 +89,6 @@ public class DailyExpenditureBolt extends BaseRichBolt {
         public synchronized void outputDailyExpenditureResponse(DailyExpenditureResponse der) {
             der.setOutputTime((short) timeService.getTime());
             log.debug("Writing daily expenditure response {}", der);
-//            System.out.println("Writing daily expenditure response " + der);
             dailyExpendituresWriter.println(der.toFileString());
         }
 

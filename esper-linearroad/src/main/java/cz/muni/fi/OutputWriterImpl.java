@@ -12,7 +12,7 @@ import cz.muni.fi.eventtypes.TollNotificationEvent;
 import org.apache.log4j.Logger;
 
 /**
- * Writes output tuples to their respective files, also fills in the emit time (= outputTime)
+ * Writes output events to their respective files, also fills in the emit time (= outputTime)
  * based on the current DataDriver second.
  */
 public class OutputWriterImpl implements OutputWriter {

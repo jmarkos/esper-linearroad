@@ -31,11 +31,9 @@ public class DataSpout extends BaseRichSpout {
         _collector = collector;
         String inputFile = (String) conf.get("BENCH_INPUTFILE");
         datadriver = new DataDriver(inputFile);
-//        datadriver.setSpeedup(10);
         startTime = (Long) conf.get("BENCH_STARTTIME");
     }
 
-    int num_of_xways = 15;
     int countOfSentPR = 0;
 
     DataDriver datadriver;
@@ -57,7 +55,7 @@ public class DataSpout extends BaseRichSpout {
             try {
                 newEvents = datadriver.getNewEvents();
             } catch (IOException e) {
-//                log.error("Error when reading from DataDriver: ", e);
+                log.error("Error when reading from DataDriver: ", e);
             }
             if (newEvents != null) {
                 for (Event newEvent : newEvents) {
@@ -91,7 +89,6 @@ public class DataSpout extends BaseRichSpout {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        // TODO maybe add a toFields method to events
         declarer.declare(new Fields("xway", "segment"));
         // StoppedCarEvent = short time, int vid, byte xway, byte lane, byte direction, byte segment, int position
         declarer.declareStream("stoppedCar", new Fields("time", "vid", "xway", "lane", "direction", "segment", "position"));

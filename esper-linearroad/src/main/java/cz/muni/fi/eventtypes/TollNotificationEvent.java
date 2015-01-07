@@ -6,7 +6,7 @@ public class TollNotificationEvent {
 
     // lrb: type, vid, time, emittime, avgspeed, toll
     public byte type; // =0
-    public short time; // 0..10799 seconds
+    public short time;
     public short outputTime;
     public int vid;
     public int averageSpeed; // validator expects integer

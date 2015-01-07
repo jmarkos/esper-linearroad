@@ -41,8 +41,8 @@ public class TollsBolt  extends BaseRichBolt {
     // each TollsBolt will process only a subset of the xways, and we don't know which one at compile time;
     // because of that, each instance will observe the PositionReports it is getting for the first minute of the
     // simulation, remembering the xways it has seen
-    // we need to know the list of xways, because each minute we need segment statistics for all segments, even ones
-    // which didn't have any traffic
+    // we need to know the list of xways, because each minute we need to send segment statistics for all segments, even ones
+    // which didn't have any traffic, and for that we need to know which xways are we actually processing
     boolean findingXways = true;
     HashSet<Integer> foundXways;
     ArrayList<Integer> myXways;
@@ -97,7 +97,6 @@ public class TollsBolt  extends BaseRichBolt {
                 for (EventBean newEvent : newEvents) {
                     TollEvent tollEvent = new TollEvent(newEvent);
                     log.debug("Sending toll {}", tollEvent);
-//                    System.out.println("Sending toll " + tollEvent);
                     // TollsEvent = int min, byte xway, byte direction, byte segment, double averageSpeed, long count, int accSegment, int toll
                     _collector.emit("toll", new Values(tollEvent.min, tollEvent.xway, tollEvent.direction, tollEvent.segment, tollEvent.averageSpeed, tollEvent.count, tollEvent.accSegment, tollEvent.toll));
                 }
@@ -166,9 +165,6 @@ public class TollsBolt  extends BaseRichBolt {
         @Override
         public void update(EventBean[] newEvents, EventBean[] oldEvents) {
             log.info("Number of active segments: " + newEvents.length);
-//            System.out.println("Number of active segments: " + newEvents.length);
-            // we need to list through and find all missing segments (segments which didn't have any action), and produce
-            // an 'empty' statistic event for them, so that the downstream query can use length(5)
 
             // east=0, west=1, first 100 is east, 100-200 is west
             boolean[][] existingStats = new boolean[xways][200];
@@ -183,7 +179,6 @@ public class TollsBolt  extends BaseRichBolt {
                 min = averageSpeedEvent.min;
                 existingStats[averageSpeedEvent.xway][averageSpeedEvent.segment + averageSpeedEvent.direction*100] = true;
                 log.debug("Sending initial average speed {}", averageSpeedEvent);
-//                System.out.println("Sending initial average speed " + averageSpeedEvent);
                 cepRT.sendEvent(averageSpeedEvent);
             }
             int numEmpty = 0;
@@ -194,7 +189,6 @@ public class TollsBolt  extends BaseRichBolt {
                     if (! existingStats[myXway][j]) {
                         InitialAverageSpeedEvent ias = new InitialAverageSpeedEvent(min, myXway, 0, j, 0);
                         log.debug("Sending empty initial average speed {}", ias);
-//                        System.out.println("Sending empty initial average speed " + ias);
                         cepRT.sendEvent(ias);
                         numEmpty++;
                     }
@@ -204,14 +198,12 @@ public class TollsBolt  extends BaseRichBolt {
                     if (! existingStats[myXway][j]) {
                         InitialAverageSpeedEvent ias = new InitialAverageSpeedEvent(min, myXway, 1, j - 100, 0);
                         log.debug("Sending empty initial average speed {}", ias);
-//                        System.out.println("Sending empty initial average speed " + ias);
                         cepRT.sendEvent(ias);
                         numEmpty++;
                     }
                 }
             }
             log.info("Sent " + numEmpty + " empty initial average speed events.");
-//            System.out.println("Sent " + numEmpty + " empty initial average speed events.");
         }
 
     }
@@ -232,9 +224,6 @@ public class TollsBolt  extends BaseRichBolt {
         @Override
         public void update(EventBean[] newEvents, EventBean[] oldEvents) {
             log.info("Number of active segments: " + newEvents.length);
-//            System.out.println("Number of active segments: " + newEvents.length);
-            // we need to list through and find all missing segments (segments which didn't have any action), and produce
-            // an 'empty' statistic event for them, so that we can later do an inner join
 
             // east=0, west=1, first 100 is east, 100-200 is west
             boolean[][] existingStats = new boolean[xways][200];
@@ -244,13 +233,11 @@ public class TollsBolt  extends BaseRichBolt {
                     continue;
                     // sometimes esper generates "empty" events, i.e. with min=null, count=0 but with actual xway,seg,dir set,
                     // so we just skip those and create them properly afterwards (with min != null)
-                    // TODO find out the real cause / report a bug
                 }
                 CountEvent countEvent = new CountEvent(newEvent);
                 min = countEvent.min;
                 existingStats[countEvent.xway][countEvent.segment + countEvent.direction*100] = true;
                 log.debug("Sending count {}", countEvent);
-//                System.out.println("Sending count " + countEvent);
                 cepRT.sendEvent(countEvent);
             }
             int numEmpty = 0;
@@ -260,7 +247,6 @@ public class TollsBolt  extends BaseRichBolt {
                     if (! existingStats[myXway][j]) {
                         CountEvent countEvent = new CountEvent(min, myXway, 0, j, 0);
                         log.debug("Sending empty count {}", countEvent);
-//                        System.out.println("Sending empty count " + countEvent);
                         cepRT.sendEvent(countEvent);
                         numEmpty++;
                     }
@@ -270,14 +256,12 @@ public class TollsBolt  extends BaseRichBolt {
                     if (! existingStats[myXway][j]) {
                         CountEvent countEvent = new CountEvent(min, myXway, 1, j - 100, 0);
                         log.debug("Sending empty count {}", countEvent);
-//                        System.out.println("Sending empty count " + countEvent);
                         cepRT.sendEvent(countEvent);
                         numEmpty++;
                     }
                 }
             }
             log.info("Sent " + numEmpty + " empty count events.");
-//            System.out.println("Sent " + numEmpty + " empty count events.");
         }
 
     }

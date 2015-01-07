@@ -16,12 +16,21 @@ import cz.muni.fi.eventtypes.*;
 import cz.muni.fi.listeners.*;
 import org.apache.log4j.Logger;
 
-/*
-Esper can leverage multiple threads in 2 ways:
-1. setting it's own internal inbound thread pool - the ordering guarantees are lost, is that a problem?
-   TODO (atm using single thread)
-
-2. sending events from multiple threads
+/**
+ * Main class, reads benchmark properties, instantiates Esper, defines queries, registers listener,
+ * and runs the event loop.
+ *
+ * Expects a single argument: -props=<path-to-benchmark-properties>
+ * with these properties (values are just examples):
+ *
+ * BENCH_INPUTFILE=/tmp/cardatapoints.out             #input file
+ * BENCH_XWAYS=15                                     #number of expressways in this simulation
+ * BENCH_OUTPUTDIRECTORY=/tmp/esper-linearroad/esper/ #output files directory
+ * BENCH_DBURL=jdbc:postgresql://localhost/lrb        #database url
+ * BENCH_DBUSERNAME=lrb
+ * BENCH_DBPASSWORD=lrb
+ *
+ * For detailed logging, edit the log4j.xml file, logger for cz.muni.fi.
  */
 public class Benchmark {
 
@@ -54,7 +63,6 @@ public class Benchmark {
         assert NUM_XWAYS > 0;
 
         Configuration cepConfig = new Configuration();
-        cepConfig.addEventType("LRB", LRBEvent.class.getName()); // TODO not used
 
         cepConfig.addEventType("PositionReport", PositionReportEvent.class.getName());
         cepConfig.addEventType("ChangedSegment", ChangedSegmentEvent.class.getName());
@@ -68,23 +76,22 @@ public class Benchmark {
         cepConfig.addEventType("TrashedCar", TrashedCarEvent.class.getName());
         cepConfig.addEventType("Accident", AccidentEvent.class.getName());
 
-//        cepConfig.getEngineDefaults().getThreading().setInternalTimerEnabled(false); // TODO zapnut
-//        cepConfig.getEngineDefaults().getThreading().setThreadPoolInbound(true);
-//        cepConfig.getEngineDefaults().getThreading().setThreadPoolInboundNumThreads(4);
-
-
         EPServiceProvider cep = EPServiceProviderManager.getProvider(null, cepConfig);
         EPAdministrator cepAdm = cep.getEPAdministrator();
 
-//        datadriver = new DataDriver("/home/van/dipl/parallel-esper/esper-lrb/data/datafile3hours.dat");
-//        datadriver = new DataDriver("/home/van/dipl/lroad_data/5/merged5.out");
         datadriver = new DataDriver(properties.getProperty("BENCH_INPUTFILE"));
-        datadriver.setSpeedup(1);
 
         final EPRuntime cepRT =  cep.getEPRuntime();
         final OutputWriter outputWriter = new OutputWriterImpl(datadriver, properties.getProperty("BENCH_OUTPUTDIRECTORY"));
         final AssessmentProcessor assessmentProcessor = new AssessmentProcessor();
-        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor(null, outputWriter, properties.getProperty("BENCH_DBURL"));
+        String dbUrl = properties.getProperty("BENCH_DBURL");
+        String username = properties.getProperty("BENCH_DBUSERNAME");
+        String pass = properties.getProperty("BENCH_DBPASSWORD");
+        final DailyExpenditureProcessor dailyExpenditureProcessor = new DailyExpenditureProcessor(null, outputWriter, dbUrl, username, pass);
+
+        //////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////// QUERIES /////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////
 
         // reports every 60 seconds of position reports as [minute, x, s, d, averageSpeed]
         EPStatement initialSpeedStats = cepAdm.createEPL(
@@ -99,15 +106,6 @@ public class Benchmark {
                         "from PositionReport.win:ext_timed_batch(time * 1000, 60 sec)  " +
                         "group by xway, segment, direction ");
         countStats.addListener(new CountListener(cepRT));
-
-//        cepRT.sendEvent(new PositionReportEvent((short)0, 101, (byte)1));
-//        cepRT.sendEvent(new PositionReportEvent((short)61, 101, (byte)1));
-//        cepRT.sendEvent(new PositionReportEvent((short)62, 101, (byte)1));
-//        cepRT.sendEvent(new PositionReportEvent((short)1, 102, (byte)2));
-////        cepRT.sendEvent(new PositionReportEvent((short)30, 101, (byte)1));
-//        cepRT.sendEvent(new PositionReportEvent((short)122, 101, (byte)1));
-//        Thread.sleep(1000);
-//        System.exit(0);
 
         // computes average speed over last 5 minutes, by using last 5 minute averages
         EPStatement speedStats = cepAdm.createEPL(
@@ -131,8 +129,7 @@ public class Benchmark {
                         "inner join Toll.win:time(90 sec) as T on CHS.min=T.min and CHS.xway=T.xway and CHS.direction=T.direction and CHS.newSegment=T.segment ");
         notifications.addListener(new NotificationListener(cepRT, outputWriter, assessmentProcessor));
 
-        // even if a car sends 4 reports with speed 0, it's position may change => not an accident
-        // TODO need to join on x,s,d, too, because a car can travel on multiple xways at the same time
+        // even if a car sends 4 reports with speed 0, it's position may change => not a trashed car
         EPStatement trashedCars = cepAdm.createPattern(
                   " (every pr0=StoppedCar) " +
                           "-> pr1=StoppedCar(vid=pr0.vid and position=pr0.position) where timer:within(35 sec) " +
@@ -141,8 +138,6 @@ public class Benchmark {
         trashedCars.addListener(new TrashedCarListener(cepRT));
 
         // distinct filters multiple-car accidents, because a new car matches with all cars in the accident
-        // every accident is copied for all segments it affects in the listener
-        // TODO isn't it enough to join on position? what about direction?
         EPStatement accidents = cepAdm.createEPL(
                 "select distinct Math.floor(t2.time/60)+1 as min, t1.xway as xway, t1.segment as segment, t1.direction as direction, t1.position as position " +
                 "from TrashedCar.win:time(30 sec) as t1 " +
@@ -153,8 +148,7 @@ public class Benchmark {
 
         // stream of 'new' cars - position reports which changed the segment of a car
         // this works like this: the 35s window has 2 consecutive reports for each car, the current one (=latest one) and the previous
-        // the 2nd window keeps just the latest one and compares it only with the previous (the where condition fails when compared with itself) TODO make this more clear
-        // TODO we need to join on x,s,d also, because the car can travel on multiple xways simultaneously...
+        // the 2nd window keeps just the latest one and compares it only with the previous (the where condition fails when compared with itself)
         EPStatement changedSegment = cepAdm.createEPL(
                 "select pr2.time as time, pr2.vid as vid, pr1.segment as oldSegment, pr2.segment as newSegment, pr2.xway as xway, pr2.direction as direction, pr2.lane as lane " +
                 "from PositionReport.win:time(35 sec) as pr1 " +
@@ -177,15 +171,15 @@ public class Benchmark {
         while (!datadriver.simulationEnded) {
             ArrayDeque<Event> newEvents = datadriver.getNewEvents();
             if (newEvents != null) {
-                long time = newEvents.getFirst().getTime() * 1000;
-//                cepRT.sendEvent(new CurrentTimeEvent(time));
                 sum += newEvents.size();
                 System.out.println("sum = " + sum + ", sec: " + newEvents.getFirst().getTime());
                 for (Event newEvent : newEvents) {
                     if (newEvent.getType() == 3) {
+                        // send DailyExpenditureQueries directly to the DEProcessor
                         dailyExpenditureProcessor.handleQuery((DailyExpenditureQuery) newEvent);
                     }
                     if (newEvent.getType() == 2) {
+                        // handle AccoutBalanceQueries directly here
                         AccountBalanceQuery abq = (AccountBalanceQuery) newEvent;
                         AssessmentProcessor.Balance balance = assessmentProcessor.getBalance(abq.getVid());
                         AccountBalanceResponse abr = new AccountBalanceResponse(abq.getTime(), abq.getQid(), balance.balance, balance.lastUpdated);
@@ -195,6 +189,8 @@ public class Benchmark {
                         PositionReportEvent pre = (PositionReportEvent) newEvent;
                         // only travel lanes count for accidents
                         if (pre.speed == 0 && pre.lane >= 1 && pre.lane <= 3 ) {
+                            // we do the filtering of StoppedCars here, doing it in Esper would be pointless, since
+                            // it is just a simple if
                             cepRT.sendEvent(new StoppedCarEvent(pre));
                         }
                         if (pre.lane == 0) {
@@ -207,7 +203,6 @@ public class Benchmark {
                         // send the PositionReport for the statistics and further ChangedSegmentEvent detection
                         cepRT.sendEvent(pre);
                     }
-//                    cepRT.sendEvent(newEvent);
                 }
             }
             Thread.sleep(10); // keep it low so we don't waste i.e. 90ms just because of checking 10ms before next second

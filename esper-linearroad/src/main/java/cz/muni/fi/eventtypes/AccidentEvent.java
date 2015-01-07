@@ -4,10 +4,10 @@ import com.espertech.esper.client.EventBean;
 
 public class AccidentEvent {
 
-    public int min; // minute for which the stats were computed, max 180
-    public byte xway; // 0..L-1
-    public byte direction; // 0 = East, 1 = West
-    public byte segment; // 0..99, 1 mile long
+    public int min;
+    public byte xway;
+    public byte direction;
+    public byte segment;
     public byte originalSegment; // the segment where the accident truly occured
     public int position;
 

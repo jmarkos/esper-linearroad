@@ -1,6 +1,8 @@
 package cz.muni.fi.eventtypes;
 
-// TODO delete at some point
+/**
+ * Not used, useful as a description of the fields.
+ */
 public class LRBEvent {
 
     public byte type;
@@ -39,7 +41,6 @@ public class LRBEvent {
     }
 
     public LRBEvent() {
-
     }
 
     @Override
