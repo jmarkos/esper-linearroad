@@ -72,6 +72,9 @@ public class LinearRoadTopology {
         if (localmode) {
             TopologyBuilder builder = new TopologyBuilder();
 
+            // fieldsGrouping represents the hashed paritioning
+            // allGrouping means that every instance gets all events from the stream (in our case, we have only 1 instance)
+
             builder.setSpout("dataSpout", new DataSpout(), 1);
             builder.setBolt("dailyExpenditureBolt", new DailyExpenditureBolt(), 1)
                     .allGrouping("dataSpout", "dailyExpenditureQuery");
